@@ -367,11 +367,32 @@ const SUPABASE_URL = "https://ptqbabqtuvvyzhbyuaqp.supabase.co";
 const EDGE_FN_URL  = SUPABASE_URL + "/functions/v1/smart-task";
 const ANON_KEY     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0cWJhYnF0dXZ2eXpoYnl1YXFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDY5OTAsImV4cCI6MjA5NDI4Mjk5MH0.TQQfG-4sxA22x_bzfyeHoF8ycPNXjVOjd8l3e0IXYFc";
 
+// ── DROPDOWNS ──────────────────────────────────────────────
+const WEBSITE_CATEGORIES = [
+  { value: '', label: 'Select a category...' },
+  { value: 'ecommerce', label: 'E-commerce — Sell products online' },
+  { value: 'saas', label: 'SaaS / Platform — Software or app product' },
+  { value: 'service', label: 'Service / Lead generation — Human-delivered service' },
+  { value: 'corporate', label: 'Corporate / Informational — Company or organisation site' },
+  { value: 'content', label: 'Content / Publishing — Blog, news or media site' },
+  { value: 'unsure', label: 'Not sure — Let AI decide' },
+];
+const MAIN_GOALS = [
+  { value: '', label: 'Select your main goal...' },
+  { value: 'generate_leads', label: 'Generate leads or enquiries' },
+  { value: 'sell_products', label: 'Sell products or services' },
+  { value: 'get_signups', label: 'Get signups or free trial starts' },
+  { value: 'get_bookings', label: 'Get bookings or appointments' },
+  { value: 'build_trust', label: 'Build brand trust or awareness' },
+  { value: 'share_information', label: 'Share information or educate' },
+  { value: 'other', label: 'Other (specify below)' },
+];
+
 // ── STATE ──────────────────────────────────────────────────
 let currentTier = 'free';
 let stepInterval = null;
 let formSnapshot = {};
-const STEPS = ['Submitting your details','Analysing UX patterns','Scoring categories','Generating recommendations','Finalising your report'];
+const STEPS = ['Submitting your details','Detecting website category','Applying UX rule pack','Generating recommendations','Finalising your report'];
 
 // ── MODAL CONTROLS ─────────────────────────────────────────
 function openModal(tier) { currentTier = tier; document.getElementById('modal').style.display = 'flex'; renderForm(); }
@@ -379,6 +400,11 @@ function closeModal() { document.getElementById('modal').style.display = 'none';
 
 // ── FORM ───────────────────────────────────────────────────
 function renderForm() {
+  const catOpts  = WEBSITE_CATEGORIES.map(c => `<option value="${c.value}" ${formSnapshot.websiteCategory===c.value?'selected':''} >${c.label}</option>`).join('');
+  const goalOpts = MAIN_GOALS.map(g => `<option value="${g.value}" ${formSnapshot.mainGoalType===g.value?'selected':''} >${g.label}</option>`).join('');
+  const showOther = formSnapshot.mainGoalType === 'other';
+
+  document.getElementById('modal-content').className = 'modal';
   document.getElementById('modal-content').innerHTML = `
     <div class="modal-head">
       <div><h3>Start Your UX Audit</h3><p>Your report will be emailed within minutes.</p></div>
@@ -396,40 +422,62 @@ function renderForm() {
           </div>
         </div>
       </div>
-      <div class="form-group"><label class="form-label">Website URL *</label><input class="form-input" id="f-url" type="url" placeholder="https://yourproduct.com" value="${formSnapshot.websiteUrl||''}"></div>
-      <div class="form-group"><label class="form-label">Company / Product name *</label><input class="form-input" id="f-name" type="text" placeholder="e.g. Acme SaaS" value="${formSnapshot.companyName||''}"></div>
-      <div class="form-group"><label class="form-label">Main goal of this page *</label><textarea class="form-textarea" id="f-goal" rows="2" placeholder="e.g. Get users to sign up for a free trial">${formSnapshot.mainGoal||''}</textarea></div>
-      <div class="form-group"><label class="form-label">Who is your target user? *</label><input class="form-input" id="f-user" type="text" placeholder="e.g. SaaS founders, UX managers" value="${formSnapshot.targetUser||''}"></div>
-      <div class="form-group"><label class="form-label">What should users do here? *</label><textarea class="form-textarea" id="f-action" rows="2" placeholder="e.g. Book a demo, sign up, contact us">${formSnapshot.userAction||''}</textarea></div>
-      <div class="form-group"><label class="form-label">Specific concerns <span>(optional)</span></label><textarea class="form-textarea" id="f-concerns" rows="2" placeholder="e.g. High bounce rate, low conversions">${formSnapshot.concerns||''}</textarea></div>
+      <div class="form-group"><label class="form-label">Website URL *</label><input class="form-input" id="f-url" type="url" placeholder="https://yourproduct.com" value="${formSnapshot.websiteUrl||''}" ></div>
+      <div class="form-group"><label class="form-label">Company / Product name *</label><input class="form-input" id="f-name" type="text" placeholder="e.g. Acme SaaS" value="${formSnapshot.companyName||''}" ></div>
+      <div class="form-group">
+        <label class="form-label">What best describes your website? <span>(optional)</span></label>
+        <select class="form-input" id="f-category" onchange="onCategoryChange()">${catOpts}</select>
+        <p style="font-size:11px;color:var(--color-neutral-400);margin-top:4px;">If unsure, leave as Not sure — our AI will auto-detect your site type.</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">What is the main goal of this page? *</label>
+        <select class="form-input" id="f-goal-type" onchange="onGoalChange()">${goalOpts}</select>
+      </div>
+      <div id="goal-other-group" style="display:${showOther?'flex':'none'};flex-direction:column;gap:8px;">
+        <label class="form-label">Please specify your goal *</label>
+        <input class="form-input" id="f-goal-other" type="text" placeholder="e.g. Drive newsletter signups" value="${formSnapshot.mainGoalOther||''}" >
+      </div>
+      <div class="form-group"><label class="form-label">Who is your target user? *</label><input class="form-input" id="f-user" type="text" placeholder="e.g. SaaS founders, UX managers" value="${formSnapshot.targetUser||''}" ></div>
+      <div class="form-group"><label class="form-label">What should users do on this page? *</label><textarea class="form-textarea" id="f-action" rows="2" placeholder="e.g. Book a demo, sign up, contact us">${formSnapshot.userAction||''}</textarea></div>
+      <div class="form-group"><label class="form-label">Specific concerns <span>(optional)</span></label><textarea class="form-textarea" id="f-concerns" rows="2" placeholder="e.g. High bounce rate, people visit but dont convert">${formSnapshot.concerns||''}</textarea></div>
       <hr class="form-divider">
-      <div class="form-group"><label class="form-label">Your email address *</label><input class="form-input" id="f-email" type="email" placeholder="you@company.com" value="${formSnapshot.email||''}"></div>
+      <div class="form-group"><label class="form-label">Your email address *</label><input class="form-input" id="f-email" type="email" placeholder="you@company.com" value="${formSnapshot.email||''}" ></div>
       <button class="form-submit" onclick="submitForm()">✦ &nbsp;Run ${currentTier==='pro'?'Pro':'Free'} Audit</button>
     </div>`;
 }
 
 function setTier(t) { currentTier = t; renderForm(); }
+function onCategoryChange() { formSnapshot.websiteCategory = document.getElementById('f-category')?.value; }
+function onGoalChange() {
+  const val = document.getElementById('f-goal-type')?.value;
+  formSnapshot.mainGoalType = val;
+  const og = document.getElementById('goal-other-group');
+  if (og) og.style.display = val === 'other' ? 'flex' : 'none';
+}
 
 // ── SUBMIT ─────────────────────────────────────────────────
 async function submitForm() {
-  const url     = document.getElementById('f-url')?.value?.trim();
-  const name    = document.getElementById('f-name')?.value?.trim();
-  const goal    = document.getElementById('f-goal')?.value?.trim();
-  const user    = document.getElementById('f-user')?.value?.trim();
-  const action  = document.getElementById('f-action')?.value?.trim();
-  const concerns= document.getElementById('f-concerns')?.value?.trim();
-  const email   = document.getElementById('f-email')?.value?.trim();
+  const url       = document.getElementById('f-url')?.value?.trim();
+  const name      = document.getElementById('f-name')?.value?.trim();
+  const category  = document.getElementById('f-category')?.value || '';
+  const goalType  = document.getElementById('f-goal-type')?.value?.trim();
+  const goalOther = document.getElementById('f-goal-other')?.value?.trim();
+  const user      = document.getElementById('f-user')?.value?.trim();
+  const action    = document.getElementById('f-action')?.value?.trim();
+  const concerns  = document.getElementById('f-concerns')?.value?.trim();
+  const email     = document.getElementById('f-email')?.value?.trim();
 
-  if (!url || !name || !goal || !user || !action || !email) {
-    alert('Please fill in all required fields.'); return;
-  }
+  const goalLabel = goalType === 'other'
+    ? (goalOther || 'Other')
+    : (MAIN_GOALS.find(g => g.value === goalType)?.label || goalType);
 
-  // Save form state
-  formSnapshot = { websiteUrl:url, companyName:name, mainGoal:goal, targetUser:user, userAction:action, concerns, email, tier:currentTier };
+  if (!url || !name || !goalType || !user || !action || !email) { alert('Please fill in all required fields.'); return; }
+  if (goalType === 'other' && !goalOther) { alert('Please specify your main goal.'); return; }
+
+  formSnapshot = { websiteUrl:url, companyName:name, websiteCategory:category, mainGoalType:goalType, mainGoal:goalLabel, mainGoalOther:goalOther||'', targetUser:user, userAction:action, concerns:concerns||'', email, tier:currentTier };
 
   renderProcessing();
 
-  // Animate steps
   let s = 0;
   stepInterval = setInterval(() => {
     if(s>0){ const p=document.getElementById('step-'+(s-1)); if(p){p.className='proc-step done';p.innerHTML=`<span class="step-done">✓</span>${STEPS[s-1]}`;} }
@@ -439,27 +487,15 @@ async function submitForm() {
   }, 900);
 
   try {
-    // ── CALL SUPABASE EDGE FUNCTION ──────────────────────
     const response = await fetch(EDGE_FN_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${ANON_KEY}`,
-        'apikey': ANON_KEY
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}`, 'apikey': ANON_KEY },
       body: JSON.stringify(formSnapshot)
     });
-
     const data = await response.json();
-
     clearInterval(stepInterval);
-
-    if (data.success && data.report) {
-      renderResult(data.report);
-    } else {
-      renderError(data.error || 'Something went wrong. Please try again.');
-    }
-
+    if (data.success && data.report) { renderResult(data.report); }
+    else { renderError(data.error || 'Something went wrong. Please try again.'); }
   } catch(err) {
     clearInterval(stepInterval);
     renderError('Network error — please check your connection and try again.');
@@ -482,23 +518,24 @@ function renderProcessing() {
 
 // ── RESULT SCREEN ──────────────────────────────────────────
 function renderResult(r) {
-  const scoreColor = s => s>=75?'var(--color-success)':s>=55?'var(--color-warning)':'var(--color-danger)';
+  const scoreColor = s => s>=75?'var(--color-success)':s>=55?'var(--color-warning)':' var(--color-danger)';
   const score = r?.overallScore?.score || 0;
   const summary = r?.overallScore?.summary || 'Your audit is complete. Check your email for the full report.';
+  const catLabel = WEBSITE_CATEGORIES.find(c => c.value === formSnapshot.websiteCategory)?.label?.split(' —')[0] || 'Website';
 
   const wins = (r?.quickWins||[]).slice(0,3).map(w=>
     `<div class="win-item"><span class="win-icon">✓</span>${typeof w==='object'?w.recommendation:w}</div>`
   ).join('') || '<div class="win-item"><span class="win-icon">✓</span>Check your email for your full quick wins list.</div>';
 
   const issues = (r?.issues||r?.top5Issues||[]).slice(0,3).map(i=>
-    `<div class="issue-item"><span class="issue-icon">!</span>${typeof i==='object'?(i.title||'')+(i.description?' — '+i.description:''):i}</div>`
+    `<div class="issue-item"><span class="issue-icon">!</span>${typeof i==='object'?(i.title||'')+( i.description?' — '+i.description:''):i}</div>`
   ).join('') || '<div class="issue-item"><span class="issue-icon">!</span>Check your email for your full issues list.</div>';
 
   document.getElementById('modal-content').classList.add('modal--wide');
-
   document.getElementById('modal-content').innerHTML = `
     <div class="result-head" style="position:relative;">
       <button onclick="closeModal()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</button>
+      <div style="display:inline-block;background:rgba(255,255,255,0.1);border-radius:100px;padding:4px 14px;font-size:11px;color:var(--color-primary-200);font-weight:600;letter-spacing:1px;margin-bottom:16px;text-transform:uppercase;">${catLabel} Audit</div>
       <div class="score-ring" style="border-color:${scoreColor(score)}">
         <span class="score-num">${score||'—'}</span>
         <span class="score-lbl">/ 100</span>
@@ -509,22 +546,16 @@ function renderResult(r) {
     <div class="result-body">
       <div class="email-note">
         <span class="cb-icon" style="font-size:20px;color:var(--primary);flex-shrink:0;">mail</span>
-        Full report sent to <strong style="margin-left:4px">${formSnapshot.email}</strong>
+        Full ${catLabel} report sent to <strong style="margin-left:4px">${formSnapshot.email}</strong>
       </div>
       <div class="result-cols">
-        <div>
-          <div class="r-title">Quick Wins</div>
-          ${wins}
-        </div>
-        <div>
-          <div class="r-title">Priority Issues</div>
-          ${issues}
-        </div>
+        <div><div class="r-title">Quick Wins</div>${wins}</div>
+        <div><div class="r-title">Priority Issues</div>${issues}</div>
       </div>
       ${currentTier==='free'?`
       <div class="upcta">
         <h4>Want the full picture?</h4>
-        <p>Upgrade to Pro for all 10 category scores, conversion friction analysis, strategic recommendations, and a phased improvement roadmap.</p>
+        <p>Upgrade to Pro for all 10 category scores, category-specific conversion analysis, strategic recommendations, and a phased improvement roadmap.</p>
         <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="setTier('pro');renderForm()">Get Pro Audit — R499</button>
       </div>`:''}
       <button onclick="closeModal()" style="background:none;border:var(--border-subtle);border-radius:var(--radius-md);padding:10px 18px;cursor:pointer;font-family:var(--font-body);color:var(--color-neutral-600);font-size:14px;width:100%;">Close</button>
