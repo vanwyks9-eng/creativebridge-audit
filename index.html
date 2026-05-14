@@ -1,20 +1,3 @@
-<!--
-  CreativeBridge Audit — Frontend
-  Version History:
-  v1.0.0 — 2026-05-13 — Initial deploy
-  v1.1.0 — 2026-05-14 — Connected form to Supabase edge function
-  v1.1.1 — 2026-05-14 — Corrected edge function URL to smart-task
-  v1.1.2 — 2026-05-14 — Modal close button on all screens, removed click-outside dismiss
-  v1.1.3 — 2026-05-14 — Corrected edge function endpoint URL
-  v1.1.4 — 2026-05-14 — Claude model fixed in edge function (claude-sonnet-4-5)
-
-  Stack: HTML · Supabase Edge Functions · Claude API · Resend
-  Edge function: https://ptqbabqtuvvyzhbyuaqp.supabase.co/functions/v1/smart-task
-  Hosted: audit.creativebridge.co.za via Vercel
--->
-<!DOCTYPE html>
-<html lang="en">
-...
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -160,6 +143,9 @@ button{cursor:pointer;font-family:var(--font-body);}
 /* ── MODAL ───────────────────────────────────────────────── */
 .modal-overlay{position:fixed;inset:0;background:rgba(13,10,72,0.84);z-index:200;display:flex;align-items:center;justify-content:center;padding:var(--space-4);backdrop-filter:blur(6px);}
 .modal{background:var(--background);border-radius:var(--radius-lg);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-modal);border:var(--border-subtle);}
+.modal--wide{max-width:860px;}
+.result-cols{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);}
+@media(max-width:640px){.result-cols{grid-template-columns:1fr;}}
 .modal-head{position:sticky;top:0;background:var(--background);border-bottom:var(--border-subtle);padding:var(--space-6) var(--space-8);display:flex;align-items:flex-start;justify-content:space-between;border-radius:var(--radius-lg) var(--radius-lg) 0 0;z-index:1;}
 .modal-head h3{font-size:26px;letter-spacing:-0.5px;}
 .modal-head p{font-size:12px;color:var(--color-neutral-600);margin-top:var(--space-1);}
@@ -378,7 +364,7 @@ button{cursor:pointer;font-family:var(--font-body);}
 <script>
 // ── CONFIG ─────────────────────────────────────────────────
 const SUPABASE_URL = "https://ptqbabqtuvvyzhbyuaqp.supabase.co";
-const EDGE_FN_URL = SUPABASE_URL + "/functions/v1/smart-task";
+const EDGE_FN_URL  = SUPABASE_URL + "/functions/v1/run-audit";
 const ANON_KEY     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0cWJhYnF0dXZ2eXpoYnl1YXFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDY5OTAsImV4cCI6MjA5NDI4Mjk5MH0.TQQfG-4sxA22x_bzfyeHoF8ycPNXjVOjd8l3e0IXYFc";
 
 // ── STATE ──────────────────────────────────────────────────
@@ -508,6 +494,8 @@ function renderResult(r) {
     `<div class="issue-item"><span class="issue-icon">!</span>${typeof i==='object'?(i.title||'')+(i.description?' — '+i.description:''):i}</div>`
   ).join('') || '<div class="issue-item"><span class="issue-icon">!</span>Check your email for your full issues list.</div>';
 
+  document.getElementById('modal-content').classList.add('modal--wide');
+
   document.getElementById('modal-content').innerHTML = `
     <div class="result-head" style="position:relative;">
       <button onclick="closeModal()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</button>
@@ -519,9 +507,20 @@ function renderResult(r) {
       <p>${summary}</p>
     </div>
     <div class="result-body">
-      <div class="email-note">✉ &nbsp;Full report sent to <strong style="margin-left:2px">${formSnapshot.email}</strong></div>
-      <div><div class="r-title">Quick Wins</div>${wins}</div>
-      <div><div class="r-title">Priority Issues</div>${issues}</div>
+      <div class="email-note">
+        <span class="cb-icon" style="font-size:20px;color:var(--primary);flex-shrink:0;">mail</span>
+        Full report sent to <strong style="margin-left:4px">${formSnapshot.email}</strong>
+      </div>
+      <div class="result-cols">
+        <div>
+          <div class="r-title">Quick Wins</div>
+          ${wins}
+        </div>
+        <div>
+          <div class="r-title">Priority Issues</div>
+          ${issues}
+        </div>
+      </div>
       ${currentTier==='free'?`
       <div class="upcta">
         <h4>Want the full picture?</h4>
