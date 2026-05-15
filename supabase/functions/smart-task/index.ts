@@ -234,8 +234,8 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5",
-        max_tokens: tier === "pro" ? 3000 : 2000,
+        model: "claude-sonnet-4-6",
+        max_tokens: tier === "pro" ? 4000 : 2000,
         system: "You are a senior UX consultant. Return ONLY raw JSON. Do NOT wrap in markdown backticks. Do NOT add any text before or after the JSON object.",
         messages: [{ role: "user", content: prompt }],
       }),
