@@ -244,8 +244,7 @@ serve(async (req) => {
       user_action: form.userAction, concerns: form.concerns, email: form.email,
       tier, prompt_version: "v4.0", status: "processing", created_at: new Date().toISOString(),
     });
-    (globalThis as any).EdgeRuntime?.waitUntil(processAudit(form, submissionId));
-
+await processAudit(form, submissionId);
     return new Response(JSON.stringify({
       success: true,
       message: "Audit is being processed. Check your email in 1-2 minutes.",
