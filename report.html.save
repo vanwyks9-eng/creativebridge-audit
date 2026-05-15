@@ -99,12 +99,21 @@ h1,h2,h3,h4{font-family:'Merriweather Sans',sans-serif;font-weight:700;line-heig
 .report-footer{text-align:center;padding:24px;color:#9998B0;font-size:12px;}
 
 /* PDF PRINT STYLES */
+
+
+/* PDF PRINT STYLES */
 @media print {
+  #pdf-content { font-size: 13px; }
+  .report-header { page-break-after: avoid; }
+  .section-title { page-break-after: avoid; }
+  .score-grid { page-break-inside: auto; }
+  .score-card { page-break-inside: avoid; }
   .nav,.btn-download,.btn-back,.upgrade-cta{display:none!important;}
   body{background:#fff;}
   .card{box-shadow:none;border:1px solid #E8E7F5;}
   .report-header{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
+
 </style>
 </head>
 <body>
@@ -332,13 +341,17 @@ function downloadPDF() {
   const companyName = el.querySelector('.report-details')?.textContent?.match(/Company: (.+)/)?.[1]?.trim() || 'UX-Audit';
   const filename = `CreativeBridge-UX-Audit-${companyName.replace(/\s+/g,'-')}.pdf`;
 
-  const opt = {
-    margin: 0,
+const opt = {
+    margin: [8, 0, 8, 0],
     filename,
     image: { type: 'jpeg', quality: 0.95 },
     html2canvas: { scale: 2, useCORS: true, logging: false },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-loadReport();
+
+  pagebreak: { mode: ['css', 'legacy'] }
+  };
+  html2pdf().set(opt).from(el).save();
+}loadReport();
 </script>
 </body>
 </html>
