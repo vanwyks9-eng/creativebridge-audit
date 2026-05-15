@@ -342,12 +342,12 @@ function downloadPDF() {
   const filename = `CreativeBridge-UX-Audit-${companyName.replace(/\s+/g,'-')}.pdf`;
 
 const opt = {
-    margin: [8, 0, 8, 0],
+    margin: 0,
     filename,
-    image: { type: 'jpeg', quality: 0.95 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 1200 },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    pagebreak: { mode: ['css', 'legacy'] }
+    pagebreak: { mode: 'avoid-all' }
   };
   html2pdf().set(opt).from(el).save();
 }
