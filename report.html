@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UX Audit Report — CreativeBridge</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather+Sans:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;font-size:14px;background:#F4F3FF;color:#232225;line-height:1.6;-webkit-font-smoothing:antialiased;}
+h1,h2,h3,h4{font-family:'Merriweather Sans',sans-serif;font-weight:700;line-height:1.15;}
+
+/* NAV */
+.nav{background:#0D0A48;padding:0 40px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.nav-logo{font-family:'Merriweather Sans',sans-serif;font-weight:800;font-size:16px;color:#fff;}
+.nav-logo span{color:#FF9070;}
+.nav-actions{display:flex;gap:12px;align-items:center;}
+.btn-download{background:#FC2F00;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-family:'Merriweather Sans',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;}
+.btn-download:hover{background:#C22400;}
+.btn-back{background:rgba(255,255,255,0.1);color:#9998B0;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+.btn-back:hover{color:#fff;}
+
+/* LAYOUT */
+.container{max-width:900px;margin:0 auto;padding:40px 24px;}
+
+/* LOADING */
+.loading{text-align:center;padding:80px 24px;}
+.loading h2{font-size:24px;color:#0D0A48;margin-bottom:12px;}
+.loading p{color:#6B6A80;}
+.spinner{width:48px;height:48px;border:4px solid #E8E7F5;border-top-color:#2F27CE;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 24px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.error-state{text-align:center;padding:80px 24px;}
+.error-state h2{color:#C22400;margin-bottom:12px;}
+
+/* REPORT HEADER */
+.report-header{background:#0D0A48;border-radius:16px 16px 0 0;padding:40px;}
+.report-meta{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+.report-brand{font-family:'Merriweather Sans',sans-serif;font-weight:800;font-size:22px;color:#fff;margin-bottom:20px;}
+.report-brand span{color:#FF9070;}
+.badge{display:inline-block;border-radius:100px;padding:4px 14px;font-family:'Merriweather Sans',sans-serif;font-weight:700;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#fff;margin-bottom:12px;}
+.report-details{font-size:13px;color:#9998B0;line-height:1.8;}
+.report-details a{color:#B8B4FF;}
+.score-hero{text-align:center;flex-shrink:0;}
+.score-circle{width:110px;height:110px;border-radius:50%;border:5px solid #1D7A45;display:flex;align-items:center;justify-content:center;flex-direction:column;margin:0 auto 12px;}
+.score-num{font-family:'Merriweather Sans',sans-serif;font-size:36px;font-weight:800;color:#fff;line-height:1;}
+.score-max{font-size:12px;color:#9998B0;font-weight:600;}
+.score-rating{font-family:'Merriweather Sans',sans-serif;font-weight:700;font-size:16px;color:#fff;}
+
+/* CARDS */
+.card{background:#fff;border-radius:12px;padding:32px;margin-bottom:16px;}
+.card-title{font-family:'Merriweather Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#2F27CE;margin-bottom:20px;}
+.summary-text{font-size:15px;color:#3D3C55;line-height:1.75;background:#F4F3FF;border-left:4px solid #2F27CE;padding:16px 20px;border-radius:0 8px 8px 0;}
+
+/* CATEGORY SCORES */
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.cat-card{background:#F4F3FF;border:1px solid #DDDBFF;border-radius:10px;padding:16px;}
+.cat-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.cat-name{font-family:'Merriweather Sans',sans-serif;font-weight:700;font-size:13px;color:#0D0A48;}
+.cat-score{font-family:'Merriweather Sans',sans-serif;font-weight:800;font-size:22px;line-height:1;}
+.cat-score-max{font-size:12px;color:#9998B0;font-weight:400;}
+.cat-obs{font-size:12px;color:#6B6A80;line-height:1.6;margin-bottom:8px;}
+.priority-badge{display:inline-block;border-radius:100px;padding:2px 10px;font-size:10px;font-weight:700;color:#fff;}
+
+/* SCORE BAR */
+.score-bar-wrap{margin-bottom:6px;}
+.score-bar-bg{background:#E8E7F5;border-radius:100px;height:6px;overflow:hidden;}
+.score-bar-fill{height:100%;border-radius:100px;transition:width .6s ease;}
+
+/* ISSUES / WINS */
+.issue-item,.win-item{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid #E8E7F5;}
+.issue-item:last-child,.win-item:last-child{border-bottom:none;}
+.issue-icon{color:#C22400;font-weight:800;font-size:18px;flex-shrink:0;line-height:1.4;}
+.win-icon{color:#1D7A45;font-weight:800;font-size:18px;flex-shrink:0;line-height:1.4;}
+.issue-text,.win-text{font-size:13px;color:#3D3C55;line-height:1.6;}
+
+/* FREE AUDIT EXTRAS */
+.strength-card{background:#EAFAF1;border:1px solid #B7E4C7;border-radius:8px;padding:14px 16px;margin-bottom:10px;}
+.strength-title{font-weight:700;font-size:13px;color:#1D7A45;margin-bottom:4px;}
+.issue-card{background:#FFF8E1;border:1px solid #F5C98A;border-radius:8px;padding:14px 16px;margin-bottom:10px;}
+.issue-card-title{font-weight:700;font-size:13px;color:#232225;}
+.sev-badge{display:inline-block;border-radius:100px;padding:2px 8px;font-size:10px;font-weight:700;color:#fff;margin-left:8px;}
+.issue-impact{font-size:12px;color:#6B6A80;font-style:italic;margin-top:4px;}
+
+/* ROADMAP */
+.roadmap-section{margin-bottom:20px;}
+.roadmap-label{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;}
+.roadmap-item{font-size:13px;color:#3D3C55;padding:8px 0;border-bottom:1px solid #E8E7F5;display:flex;gap:8px;}
+.roadmap-item::before{content:"→";color:#9998B0;flex-shrink:0;}
+
+/* UPGRADE CTA */
+.upgrade-cta{background:linear-gradient(135deg,#0D0A48,#2F27CE);border-radius:12px;padding:32px;text-align:center;color:#fff;margin-bottom:16px;}
+.upgrade-cta h3{font-size:20px;margin-bottom:8px;}
+.upgrade-cta p{font-size:13px;color:#B8B4FF;margin-bottom:20px;line-height:1.7;}
+.upgrade-btn{display:inline-block;background:#FC2F00;color:#fff;font-family:'Merriweather Sans',sans-serif;font-weight:700;font-size:14px;padding:14px 28px;border-radius:8px;text-decoration:none;}
+
+/* FOOTER */
+.report-footer{text-align:center;padding:24px;color:#9998B0;font-size:12px;}
+
+/* PDF PRINT STYLES */
+@media print {
+  .nav,.btn-download,.btn-back,.upgrade-cta{display:none!important;}
+  body{background:#fff;}
+  .card{box-shadow:none;border:1px solid #E8E7F5;}
+  .report-header{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">Creative<span>Bridge</span> <span style="color:#6B6A80;font-weight:300;">/</span> <span style="color:#9998B0;font-weight:400;font-size:14px;">Audit Report</span></div>
+  <div class="nav-actions">
+    <a href="https://audit.creativebridge.co.za" class="btn-back">← New Audit</a>
+    <button class="btn-download" onclick="downloadPDF()">⬇ Download PDF</button>
+  </div>
+</nav>
+
+<div id="loading" class="loading">
+  <div class="spinner"></div>
+  <h2>Loading your report…</h2>
+  <p>Fetching your audit results from our servers.</p>
+</div>
+
+<div id="error" class="error-state" style="display:none;">
+  <h2>Report not found</h2>
+  <p style="color:#6B6A80;margin-top:8px;">This report may have expired or the link is invalid.</p>
+  <a href="https://audit.creativebridge.co.za" style="display:inline-block;margin-top:20px;background:#2F27CE;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Run a new audit</a>
+</div>
+
+<div id="report" style="display:none;"></div>
+
+<div class="report-footer">Creative Bridge · AI-powered UX audits · <a href="mailto:hello@creativebridge.co.za" style="color:#2F27CE;">hello@creativebridge.co.za</a></div>
+
+<script>
+const SUPABASE_URL = "https://ptqbabqtuvvyzhbyuaqp.supabase.co";
+const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0cWJhYnF0dXZ2eXpoYnl1YXFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDY5OTAsImV4cCI6MjA5NDI4Mjk5MH0.TQQfG-4sxA22x_bzfyeHoF8ycPNXjVOjd8l3e0IXYFc";
+
+const scoreColor = s => { const p=(s/100)*100; return p>=75?'#1D7A45':p>=60?'#B85C00':'#C22400'; };
+const scoreColorCat = s => { const p=(s/10)*100; return p>=75?'#1D7A45':p>=60?'#B85C00':'#C22400'; };
+const sevColor = s => s==='High'?'#C22400':s==='Medium'?'#B85C00':'#1D7A45';
+const catBadgeColor = {"E-commerce":"#FC2F00","SaaS":"#2F27CE","Service":"#1D7A45","Corporate":"#B85C00","Content":"#6B6A80"};
+
+async function loadReport() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  if (!id) { showError(); return; }
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/audit_submissions?id=eq.${id}&select=result,status,tier,created_at`, {
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+    });
+    const rows = await res.json();
+    if (!rows.length || !rows[0].result) { showError(); return; }
+
+    const r = rows[0].result;
+    const tier = rows[0].tier;
+    renderReport(r, tier);
+  } catch(e) {
+    showError();
+  }
+}
+
+function showError() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('error').style.display = 'block';
+}
+
+function renderReport(r, tier) {
+  document.getElementById('loading').style.display = 'none';
+  document.title = `UX Audit — ${r.companyName || 'Report'} | CreativeBridge`;
+
+  const cat = r.detectedCategory || 'Website';
+  const badgeColor = catBadgeColor[cat] || '#2F27CE';
+  const score = r.overallScore?.score || 0;
+  const isPro = tier === 'pro';
+
+  // Category scores section
+  const catScoresHtml = isPro
+    ? `<div class="card">
+        <div class="card-title">10-Category Breakdown</div>
+        <div class="cat-grid">
+          ${(r.categoryScores||[]).map(c => `
+            <div class="cat-card">
+              <div class="cat-top">
+                <div class="cat-name">${c.category||''}</div>
+                <div class="cat-score" style="color:${scoreColorCat(c.score||0)}">${c.score||0}<span class="cat-score-max">/10</span></div>
+              </div>
+              <div class="score-bar-wrap">
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:${((c.score||0)/10)*100}%;background:${scoreColorCat(c.score||0)};"></div></div>
+              </div>
+              <div class="cat-obs">${c.keyObservations||''}</div>
+              <span class="priority-badge" style="background:${sevColor(c.priority||'Medium')}">${c.priority||'Medium'} Priority</span>
+            </div>`).join('')}
+        </div>
+      </div>`
+    : `<div class="card">
+        <div class="card-title">Category Snapshot</div>
+        ${(r.categoryScores||[]).map(c => `
+          <div style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-weight:600;font-size:13px;color:#0D0A48;">${c.category||''}</span>
+              <span style="font-family:'Merriweather Sans',sans-serif;font-weight:800;font-size:18px;color:${scoreColorCat(c.score||0)}">${c.score||0}<span style="font-size:12px;color:#9998B0;">/10</span></span>
+            </div>
+            <div class="score-bar-bg"><div class="score-bar-fill" style="width:${((c.score||0)/10)*100}%;background:${scoreColorCat(c.score||0)};"></div></div>
+            <div style="font-size:12px;color:#6B6A80;margin-top:6px;">${c.summary||''}</div>
+          </div>`).join('')}
+      </div>`;
+
+  // Issues & wins
+  const issuesHtml = isPro
+    ? `<div class="card">
+        <div class="card-title">Top 5 UX Issues</div>
+        ${(r.top5Issues||[]).map(i => `<div class="issue-item"><span class="issue-icon">!</span><span class="issue-text">${i}</span></div>`).join('')}
+      </div>`
+    : `<div class="card">
+        <div class="card-title">Main UX Issues</div>
+        ${(r.issues||[]).map(i => `
+          <div class="issue-card">
+            <div><span class="issue-card-title">${i.title||''}</span><span class="sev-badge" style="background:${sevColor(i.severity||'Medium')}">${i.severity||'Medium'}</span></div>
+            <div style="font-size:13px;color:#3D3C55;margin-top:6px;">${i.description||''}</div>
+            <div class="issue-impact">Impact: ${i.impact||''}</div>
+          </div>`).join('')}
+      </div>`;
+
+  const winsHtml = isPro
+    ? `<div class="card">
+        <div class="card-title">Top 5 Quick Wins</div>
+        ${(r.top5QuickWins||[]).map(w => `<div class="win-item"><span class="win-icon">✓</span><span class="win-text">${w}</span></div>`).join('')}
+      </div>`
+    : `<div class="card">
+        <div class="card-title">Quick Wins</div>
+        ${(r.quickWins||[]).map(w => `
+          <div class="win-item">
+            <span class="win-icon">✓</span>
+            <span class="win-text">${w.recommendation||''} <span style="color:#9998B0;font-size:11px;">· Effort: ${w.effort||''} · Impact: ${w.impact||''}</span></span>
+          </div>`).join('')}
+      </div>`;
+
+  // Strengths (free only)
+  const strengthsHtml = !isPro ? `<div class="card">
+    <div class="card-title">Key Strengths</div>
+    ${(r.strengths||[]).map(s => `
+      <div class="strength-card">
+        <div class="strength-title">✓ ${s.title||''}</div>
+        <div style="font-size:13px;color:#3D3C55;">${s.description||''}</div>
+      </div>`).join('')}
+  </div>` : '';
+
+  // Roadmap (pro only)
+  const roadmapHtml = isPro ? `<div class="card">
+    <div class="card-title">Phased Improvement Roadmap</div>
+    <div class="roadmap-section">
+      <div class="roadmap-label" style="color:#C22400;">Immediate — This Week</div>
+      ${(r.phasedRoadmap?.immediate||[]).map(i => `<div class="roadmap-item">${i}</div>`).join('')}
+    </div>
+    <div class="roadmap-section">
+      <div class="roadmap-label" style="color:#B85C00;">30-Day Plan</div>
+      ${(r.phasedRoadmap?.thirtyDay||[]).map(i => `<div class="roadmap-item">${i}</div>`).join('')}
+    </div>
+    <div class="roadmap-section">
+      <div class="roadmap-label" style="color:#1D7A45;">Long Term (60–90 Days)</div>
+      ${(r.phasedRoadmap?.longTerm||[]).map(i => `<div class="roadmap-item">${i}</div>`).join('')}
+    </div>
+  </div>` : '';
+
+  // Upgrade CTA (free only)
+  const upgradeCta = !isPro ? `<div class="upgrade-cta">
+    <h3>${r.upgradePrompt?.headline||'Unlock the full UX report'}</h3>
+    <p>${r.upgradePrompt?.description||''}</p>
+    <a href="https://audit.creativebridge.co.za" class="upgrade-btn">${r.upgradePrompt?.cta||'Upgrade to Pro'} →</a>
+  </div>` : '';
+
+  document.getElementById('report').innerHTML = `
+    <div id="pdf-content">
+      <!-- HEADER -->
+      <div class="report-header" style="margin-bottom:16px;">
+        <div class="report-brand">Creative<span>Bridge</span> <span style="color:#6B6A80;font-weight:300;">/</span> <span style="color:#9998B0;font-weight:400;font-size:16px;">Audit Report</span></div>
+        <div class="report-meta">
+          <div>
+            <span class="badge" style="background:${badgeColor}">${cat} ${isPro?'Pro':'Free'} Audit</span>
+            <div class="report-details">
+              <div>Website: <a href="${r.websiteUrl||''}">${r.websiteUrl||''}</a></div>
+              <div>Company: ${r.companyName||''}</div>
+              <div>Date: ${r.auditDate||''}</div>
+              <div>Prepared for: ${r.generatedFor||''}</div>
+            </div>
+          </div>
+          <div class="score-hero">
+            <div class="score-circle" style="border-color:${scoreColor(score)}">
+              <div class="score-num" style="color:#fff">${score}</div>
+              <div class="score-max">/ 100</div>
+            </div>
+            <div class="score-rating">${r.overallScore?.rating||''}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="container" style="padding-top:0;">
+        <!-- EXECUTIVE SUMMARY -->
+        ${r.executiveSummary || r.overallScore?.summary ? `<div class="card">
+          <div class="card-title">${isPro ? 'Executive Summary' : 'Audit Summary'}</div>
+          <div class="summary-text">${r.executiveSummary || r.overallScore?.summary || ''}</div>
+        </div>` : ''}
+
+        <!-- CATEGORY SCORES -->
+        ${catScoresHtml}
+
+        <!-- ISSUES -->
+        ${issuesHtml}
+
+        <!-- WINS -->
+        ${winsHtml}
+
+        <!-- STRENGTHS (free) -->
+        ${strengthsHtml}
+
+        <!-- ROADMAP (pro) -->
+        ${roadmapHtml}
+
+        <!-- UPGRADE CTA (free) -->
+        ${upgradeCta}
+      </div>
+    </div>`;
+
+  document.getElementById('report').style.display = 'block';
+}
+
+function downloadPDF() {
+  const el = document.getElementById('pdf-content');
+  const companyName = el.querySelector('.report-details')?.textContent?.match(/Company: (.+)/)?.[1]?.trim() || 'UX-Audit';
+  const filename = `CreativeBridge-UX-Audit-${companyName.replace(/\s+/g,'-')}.pdf`;
+
+  const opt = {
+    margin: 0,
+    filename,
+    image: { type: 'jpeg', quality: 0.95 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+  };
+  html2pdf().set(opt).from(el).save();
+}
+
+loadReport();
+</script>
+</body>
+</html>
