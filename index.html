@@ -494,8 +494,12 @@ async function submitForm() {
     });
     const data = await response.json();
     clearInterval(stepInterval);
-    if (data.success && data.report) { renderResult(data.report); }
-    else { renderError(data.error || 'Something went wrong. Please try again.'); }
+    if (data.success) {
+      // Audit processing in background — show email confirmation
+      renderEmailSent();
+    } else {
+      renderError(data.error || 'Something went wrong. Please try again.');
+    }
   } catch(err) {
     clearInterval(stepInterval);
     renderError('Network error — please check your connection and try again.');
@@ -559,6 +563,28 @@ function renderResult(r) {
         <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="setTier('pro');renderForm()">Get Pro Audit — R499</button>
       </div>`:''}
       <button onclick="closeModal()" style="background:none;border:var(--border-subtle);border-radius:var(--radius-md);padding:10px 18px;cursor:pointer;font-family:var(--font-body);color:var(--color-neutral-600);font-size:14px;width:100%;">Close</button>
+    </div>`;
+}
+
+// ── EMAIL SENT SCREEN ─────────────────────────────────────
+function renderEmailSent() {
+  const catLabel = WEBSITE_CATEGORIES.find(c => c.value === formSnapshot.websiteCategory)?.label?.split(' —')[0] || 'Website';
+  document.getElementById('modal-content').classList.add('modal--wide');
+  document.getElementById('modal-content').innerHTML = `
+    <div class="result-head" style="position:relative;">
+      <button onclick="closeModal()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</button>
+      <div style="display:inline-block;background:rgba(255,255,255,0.1);border-radius:100px;padding:4px 14px;font-size:11px;color:var(--color-primary-200);font-weight:600;letter-spacing:1px;margin-bottom:16px;text-transform:uppercase;">${catLabel} Audit</div>
+      <div style="font-size:48px;margin-bottom:16px;">✓</div>
+      <h3>Your audit is being generated!</h3>
+      <p>We're analysing ${formSnapshot.companyName} with AI. This takes 1–2 minutes.</p>
+    </div>
+    <div class="result-body">
+      <div class="email-note">
+        <span class="cb-icon" style="font-size:20px;color:var(--primary);flex-shrink:0;">mail</span>
+        Your full ${catLabel} report will be emailed to <strong style="margin-left:4px">${formSnapshot.email}</strong>
+      </div>
+      <p style="font-size:13px;color:var(--color-neutral-600);text-align:center;margin-top:16px;">Check your inbox in 1–2 minutes. Don't forget to check your spam folder.</p>
+      <button onclick="closeModal()" style="margin-top:24px;background:none;border:var(--border-subtle);border-radius:var(--radius-md);padding:10px 18px;cursor:pointer;font-family:var(--font-body);color:var(--color-neutral-600);font-size:14px;width:100%;">Close</button>
     </div>`;
 }
 
