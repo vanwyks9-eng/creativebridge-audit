@@ -103,17 +103,18 @@ h1,h2,h3,h4{font-family:'Merriweather Sans',sans-serif;font-weight:700;line-heig
 
 /* PDF PRINT STYLES */
 @media print {
-  #pdf-content { font-size: 13px; }
-  .report-header { page-break-after: avoid; }
-  .section-title { page-break-after: avoid; }
-  .score-grid { page-break-inside: auto; }
-  .score-card { page-break-inside: avoid; }
   .nav,.btn-download,.btn-back,.upgrade-cta{display:none!important;}
   body{background:#fff;}
   .card{box-shadow:none;border:1px solid #E8E7F5;}
   .report-header{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  #pdf-content { font-size: 13px; }
+  .report-header { page-break-after: avoid; break-after: avoid; }
+  .section-title { page-break-after: avoid; break-after: avoid; }
+  .score-card { page-break-inside: avoid; break-inside: avoid; display: block; }
+  .issue-item { page-break-inside: avoid; break-inside: avoid; }
+  .win-item { page-break-inside: avoid; break-inside: avoid; }
+  .roadmap-item { page-break-inside: avoid; break-inside: avoid; }
 }
-
 </style>
 </head>
 <body>
