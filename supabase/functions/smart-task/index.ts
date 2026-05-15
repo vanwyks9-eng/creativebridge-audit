@@ -235,14 +235,15 @@ serve(async (req) => {
     const form = await req.json();
     const tier = form.tier === "pro" ? "pro" : "free";
 
-    const { data: submission } = await supabase.from("audit_submissions").insert({
+    // Generate ID upfront so it's always available
+    const submissionId = crypto.randomUUID();
+    await supabase.from("audit_submissions").insert({
+      id: submissionId,
       website_url: form.websiteUrl, company_name: form.companyName,
       main_goal: form.mainGoal, target_user: form.targetUser,
       user_action: form.userAction, concerns: form.concerns, email: form.email,
       tier, prompt_version: "v4.0", status: "processing", created_at: new Date().toISOString(),
-    }).select().single();
-
-    const submissionId = submission?.id;
+    });
     (globalThis as any).EdgeRuntime?.waitUntil(processAudit(form, submissionId));
 
     return new Response(JSON.stringify({
