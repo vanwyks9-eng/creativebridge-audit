@@ -30,16 +30,24 @@ const CATEGORY_RULES: Record<string, string> = {
 };
 
 function parseJSON(text: string): Record<string, unknown> {
-  try {
-    const clean = text.replace(/```json/g, "").replace(/```/g, "").trim();
-    const match = clean.match(/\{[\s\S]*\}/);
-    if (match) return JSON.parse(match[0]);
-  } catch (_) {}
-  try {
-    const match = text.match(/\{[\s\S]*\}/);
-    if (match) return JSON.parse(match[0]);
-  } catch (_) {}
-  throw new Error("Failed to parse AI response: " + text.substring(0, 300));
+  // Strip fences first
+  const clean = text.replace(/```json/g, "").replace(/```/g, "").trim();
+  // Find balanced outermost { }
+  const start = clean.indexOf("{");
+  if (start === -1) throw new Error("No JSON found: " + clean.substring(0, 200));
+  let depth = 0;
+  for (let i = start; i < clean.length; i++) {
+    if (clean[i] === "{") depth++;
+    else if (clean[i] === "}") {
+      depth--;
+      if (depth === 0) {
+        try { return JSON.parse(clean.substring(start, i + 1)); } catch (e) {
+          throw new Error("JSON parse failed: " + String(e) + " | text: " + clean.substring(start, start + 200));
+        }
+      }
+    }
+  }
+  throw new Error("Failed to parse AI response: " + clean.substring(0, 300));
 }
 
 function buildPrompt(form: Record<string, string>, tier: string): string {
