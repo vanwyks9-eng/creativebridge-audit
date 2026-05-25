@@ -173,14 +173,18 @@ function buildSummaryEmail(r: Record<string, any>, reportUrl: string): string {
   <div style="font-size:12px;color:#6B6A80;">Creative Bridge · AI-powered UX audits · <a href="mailto:hello@creativebridge.co.za" style="color:#8078FF;text-decoration:none;">hello@creativebridge.co.za</a></div>
 </td></tr>
 
-</table></td></tr></table></body></html>`;
+</table></td></tr></table><div style="text-align:center;padding:24px 40px;border-top:1px solid #E8E7F5;margin-top:8px;">
+  <p style="font-size:11px;color:#9998B0;margin:0;line-height:1.6;">You received this email because you requested a UX audit from Creative Bridge.<br>
+  <a href="mailto:hello@creativebridge.co.za?subject=unsubscribe" style="color:#9998B0;">Unsubscribe</a> &nbsp;·&nbsp; <a href="https://creativebridge.co.za" style="color:#9998B0;">creativebridge.co.za</a></p>
+</div>
+</body></html>`;
 }
 
 async function sendEmail(to: string, subject: string, html: string) {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${RESEND_KEY}` },
-    body: JSON.stringify({ from: "Creative Bridge Audit <audit@creativebridge.co.za>", to: [to], subject, html }),
+    body: JSON.stringify({ from: "Creative Bridge Audit <audit@creativebridge.co.za>", to: [to], subject, html, reply_to: "hello@creativebridge.co.za", headers: { "List-Unsubscribe": "<mailto:hello@creativebridge.co.za?subject=unsubscribe>", "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }),
   });
   const data = await res.json();
   console.log("Resend:", JSON.stringify(data));
@@ -234,6 +238,22 @@ serve(async (req) => {
   try {
     const form = await req.json();
     const tier = form.tier === "pro" ? "pro" : "free";
+
+    // ── RATE LIMITING ─────────────────────────────────────
+    const email = form.email?.toLowerCase().trim();
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await supabase
+      .from("audit_submissions")
+      .select("*", { count: "exact", head: true })
+      .eq("email", email)
+      .gte("created_at", since);
+
+    const limit = form.tier === "pro" ? 5 : 3;
+    if ((count ?? 0) >= limit) {
+      return new Response(JSON.stringify({
+        error: `Rate limit reached. You can run ${limit} audits per 24 hours. Please try again later.`
+      }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     // Generate ID upfront so it's always available
     const submissionId = crypto.randomUUID();
