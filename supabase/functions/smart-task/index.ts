@@ -175,7 +175,7 @@ function buildSummaryEmail(r: Record<string, any>, reportUrl: string): string {
 
 </table></td></tr></table><div style="text-align:center;padding:24px 40px;border-top:1px solid #E8E7F5;margin-top:8px;">
   <p style="font-size:11px;color:#9998B0;margin:0;line-height:1.6;">You received this email because you requested a UX audit from Creative Bridge.<br>
-  <a href="mailto:hello@creativebridge.co.za?subject=unsubscribe" style="color:#9998B0;">Unsubscribe</a> &nbsp;·&nbsp; <a href="https://creativebridge.co.za" style="color:#9998B0;">creativebridge.co.za</a></p>
+  <a href="mailto:hello@creativebridge.co.za?subject=unsubscribe" style="color:#9998B0;">Unsubscribe</a> &nbsp;·&nbsp; <a href="https://audit.creativebridge.co.za" style="color:#9998B0;">audit.creativebridge.co.za</a></p>
 </div>
 </body></html>`;
 }
