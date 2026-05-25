@@ -484,8 +484,80 @@ async function submitForm() {
     ? (goalOther || 'Other')
     : (MAIN_GOALS.find(g => g.value === goalType)?.label || goalType);
 
-  if (!url || !name || !goalType || !user || !action || !email) { alert('Please fill in all required fields.'); return; }
-  if (goalType === 'other' && !goalOther) { alert('Please specify your main goal.'); return; }
+  // Field-level validation
+  const fields = [
+    { id: 'f-url', value: url, message: 'Please enter your website URL.' },
+    { id: 'f-name', value: name, message: 'Please enter your company or product name.' },
+    { id: 'f-goal-type', value: goalType, message: 'Please select your main goal.' },
+    { id: 'f-user', value: user, message: 'Please describe your target user.' },
+    { id: 'f-action', value: action, message: 'Please describe what users should do.' },
+    { id: 'f-email', value: email, message: 'Please enter your email address.' },
+  ];
+
+  // Clear previous errors
+  document.querySelectorAll('.field-error').forEach(e => e.remove());
+  document.querySelectorAll('.form-input, .form-select, .form-textarea').forEach(e => e.style.borderColor = '');
+
+  let hasError = false;
+  for (const field of fields) {
+    if (!field.value) {
+      const el = document.getElementById(field.id);
+      if (el) {
+        el.style.borderColor = '#C22400';
+        const err = document.createElement('div');
+        err.className = 'field-error';
+        err.style.cssText = 'color:#C22400;font-size:12px;margin-top:4px;';
+        err.textContent = field.message;
+        el.parentNode.appendChild(err);
+        if (!hasError) { el.focus(); hasError = true; }
+      }
+    }
+  }
+  if (hasError) return;
+
+  if (goalType === 'other' && !goalOther) {
+    const el = document.getElementById('f-goal-other');
+    if (el) {
+      el.style.borderColor = '#C22400';
+      const err = document.createElement('div');
+      err.className = 'field-error';
+      err.style.cssText = 'color:#C22400;font-size:12px;margin-top:4px;';
+      err.textContent = 'Please specify your main goal.';
+      el.parentNode.appendChild(err);
+      el.focus();
+    }
+    return;
+  }
+
+  // Email format check
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const el = document.getElementById('f-email');
+    if (el) {
+      el.style.borderColor = '#C22400';
+      const err = document.createElement('div');
+      err.className = 'field-error';
+      err.style.cssText = 'color:#C22400;font-size:12px;margin-top:4px;';
+      err.textContent = 'Please enter a valid email address.';
+      el.parentNode.appendChild(err);
+      el.focus();
+    }
+    return;
+  }
+
+  // URL format check
+  if (!/^https?:\/\/.+/.test(url)) {
+    const el = document.getElementById('f-url');
+    if (el) {
+      el.style.borderColor = '#C22400';
+      const err = document.createElement('div');
+      err.className = 'field-error';
+      err.style.cssText = 'color:#C22400;font-size:12px;margin-top:4px;';
+      err.textContent = 'Please enter a valid URL starting with http:// or https://';
+      el.parentNode.appendChild(err);
+      el.focus();
+    }
+    return;
+  }
 
   formSnapshot = { websiteUrl:url, companyName:name, websiteCategory:category, mainGoalType:goalType, mainGoal:goalLabel, mainGoalOther:goalOther||'', targetUser:user, userAction:action, concerns:concerns||'', email, tier:currentTier };
 
