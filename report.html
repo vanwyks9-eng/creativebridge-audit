@@ -207,15 +207,8 @@ function renderReport(r, tier) {
       </div>`
     : `<div class="card">
         <div class="card-title">Category Snapshot</div>
-        ${(r.categoryScores||[]).map(c => `
-          <div style="margin-bottom:16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-              <span style="font-weight:600;font-size:13px;color:#0D0A48;">${c.category||''}</span>
-              <span style="font-family:'Merriweather Sans',sans-serif;font-weight:800;font-size:18px;color:${scoreColorCat(c.score||0)}">${c.score||0}<span style="font-size:12px;color:#9998B0;">/10</span></span>
-            </div>
-            <div class="score-bar-bg"><div class="score-bar-fill" style="width:${((c.score||0)/10)*100}%;background:${scoreColorCat(c.score||0)};"></div></div>
-            <div style="font-size:12px;color:#6B6A80;margin-top:6px;">${c.summary||''}</div>
-          </div>`).join('')}
+        <p style="font-size:13px;color:#6B6A80;margin:0 0 16px;">Your free audit includes your overall UX score. Upgrade to Pro to see all 10 category scores.</p>
+        <a href="https://audit.creativebridge.co.za" style="display:inline-block;background:#2F27CE;color:#fff;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;text-decoration:none;">Get Full Report — R499 →</a>
       </div>`;
 
   // Issues & wins
@@ -226,12 +219,13 @@ function renderReport(r, tier) {
       </div>`
     : `<div class="card">
         <div class="card-title">Main UX Issues</div>
-        ${(r.issues||[]).map(i => `
+        ${r.topIssue ? `
           <div class="issue-card">
-            <div><span class="issue-card-title">${i.title||''}</span><span class="sev-badge" style="background:${sevColor(i.severity||'Medium')}">${i.severity||'Medium'}</span></div>
-            <div style="font-size:13px;color:#3D3C55;margin-top:6px;">${i.description||''}</div>
-            <div class="issue-impact">Impact: ${i.impact||''}</div>
-          </div>`).join('')}
+            <div><span class="issue-card-title">${r.topIssue.title||''}</span><span class="sev-badge" style="background:${sevColor(r.topIssue.severity||'High')}">${r.topIssue.severity||'High'}</span></div>
+            <div style="font-size:13px;color:#3D3C55;margin-top:6px;">${r.topIssue.description||''}</div>
+          </div>
+          <div style="margin-top:12px;padding:12px;background:#F4F3FF;border-radius:8px;font-size:12px;color:#6B6A80;">+ 4 more issues in the Pro report</div>
+        ` : '<p style="font-size:13px;color:#6B6A80;">No issues data available.</p>'}
       </div>`;
 
   const winsHtml = isPro
@@ -241,22 +235,17 @@ function renderReport(r, tier) {
       </div>`
     : `<div class="card">
         <div class="card-title">Quick Wins</div>
-        ${(r.quickWins||[]).map(w => `
+        ${r.topQuickWin ? `
           <div class="win-item">
             <span class="win-icon">✓</span>
-            <span class="win-text">${w.recommendation||''} <span style="color:#9998B0;font-size:11px;">· Effort: ${w.effort||''} · Impact: ${w.impact||''}</span></span>
-          </div>`).join('')}
+            <span class="win-text">${r.topQuickWin.recommendation||''} <span style="color:#9998B0;font-size:11px;">· Effort: ${r.topQuickWin.effort||''} · Impact: ${r.topQuickWin.impact||''}</span></span>
+          </div>
+          <div style="margin-top:12px;padding:12px;background:#F4F3FF;border-radius:8px;font-size:12px;color:#6B6A80;">+ 4 more quick wins in the Pro report</div>
+        ` : '<p style="font-size:13px;color:#6B6A80;">No quick wins data available.</p>'}
       </div>`;
 
   // Strengths (free only)
-  const strengthsHtml = !isPro ? `<div class="card">
-    <div class="card-title">Key Strengths</div>
-    ${(r.strengths||[]).map(s => `
-      <div class="strength-card">
-        <div class="strength-title">✓ ${s.title||''}</div>
-        <div style="font-size:13px;color:#3D3C55;">${s.description||''}</div>
-      </div>`).join('')}
-  </div>` : '';
+  const strengthsHtml = '';
 
   // Roadmap (pro only)
   const roadmapHtml = isPro ? `<div class="card">
