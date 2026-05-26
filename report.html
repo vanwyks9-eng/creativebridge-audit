@@ -181,99 +181,138 @@ function renderReport(r, tier) {
   document.getElementById('loading').style.display = 'none';
   document.title = `UX Audit — ${r.companyName || 'Report'} | CreativeBridge`;
 
-  const cat = r.detectedCategory || 'Website';
+  const cat        = r.detectedCategory || 'Website';
   const badgeColor = catBadgeColor[cat] || '#2F27CE';
-  const score = r.overallScore?.score || 0;
-  const isPro = tier === 'pro';
+  const isPro      = tier === 'pro';
 
-  // Category scores section
-  const catScoresHtml = isPro
-    ? `<div class="card">
-        <div class="card-title">10-Category Breakdown</div>
-        <div class="cat-grid">
-          ${(r.categoryScores||[]).map(c => `
-            <div class="cat-card">
-              <div class="cat-top">
-                <div class="cat-name">${c.category||''}</div>
-                <div class="cat-score" style="color:${scoreColorCat(c.score||0)}">${c.score||0}<span class="cat-score-max">/10</span></div>
-              </div>
-              <div class="score-bar-wrap">
-                <div class="score-bar-bg"><div class="score-bar-fill" style="width:${((c.score||0)/10)*100}%;background:${scoreColorCat(c.score||0)};"></div></div>
-              </div>
-              <div class="cat-obs">${c.keyObservations||''}</div>
-              <span class="priority-badge" style="background:${sevColor(c.priority||'Medium')}">${c.priority||'Medium'} Priority</span>
-            </div>`).join('')}
+  // v6: Pro data lives in pages[]; Free uses legacy flat structure
+  const pages   = isPro && Array.isArray(r.pages) && r.pages.length ? r.pages : [];
+  const isMulti = pages.length > 1;
+
+  // Derive header score
+  const score = isPro && pages.length
+    ? Math.round(pages.reduce((s, p) => s + (p.uxScore || 0), 0) / pages.length)
+    : (r.overallScore?.score || 0);
+  const rating = isPro
+    ? (score >= 75 ? 'Strong UX Foundation' : score >= 55 ? 'Needs Improvement' : 'Critical Issues Found')
+    : (r.overallScore?.rating || '');
+
+  // ── PRO: render one full section per page ─────────────────
+  function renderPage(page, idx) {
+    const lbl = isMulti ? ` — Page ${idx + 1}` : '';
+
+    const pageHeading = isMulti ? `
+      <div style="margin:32px 0 20px;padding:14px 18px;background:#F4F3FF;border-radius:10px;border-left:4px solid #2F27CE;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#2F27CE;margin-bottom:6px;">Page ${idx + 1} of ${pages.length}</div>
+        <div style="font-size:13px;color:#3D3C55;word-break:break-all;margin-bottom:10px;"><a href="${page.url||''}" style="color:#2F27CE;">${page.url||''}</a></div>
+        <div style="display:inline-flex;align-items:center;gap:8px;">
+          <div style="width:40px;height:40px;border-radius:50%;border:3px solid ${scoreColor(page.uxScore||0)};display:inline-flex;align-items:center;justify-content:center;">
+            <span style="font-size:13px;font-weight:800;color:#0D0A48;">${page.uxScore||0}</span>
+          </div>
+          <span style="font-size:12px;color:#6B6A80;">UX Score / 100</span>
         </div>
-      </div>`
-    : `<div class="card">
-        <div class="card-title">Category Snapshot</div>
-        <p style="font-size:13px;color:#6B6A80;margin:0 0 16px;">Your free audit includes your overall UX score. Upgrade to Pro to see all 10 category scores.</p>
-        <a href="https://audit.creativebridge.co.za" style="display:inline-block;background:#2F27CE;color:#fff;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;text-decoration:none;">Get Full Report — R499 →</a>
+      </div>` : '';
+
+    const catGrid = (page.categoryScores||[]).map(c => `
+      <div class="cat-card">
+        <div class="cat-top">
+          <div class="cat-name">${c.category||''}</div>
+          <div class="cat-score" style="color:${scoreColorCat(c.score||0)}">${c.score||0}<span class="cat-score-max">/10</span></div>
+        </div>
+        <div class="score-bar-wrap">
+          <div class="score-bar-bg"><div class="score-bar-fill" style="width:${((c.score||0)/10)*100}%;background:${scoreColorCat(c.score||0)};"></div></div>
+        </div>
+        <div class="cat-obs">${c.keyObservations||''}</div>
+      </div>`).join('');
+
+    const findingsHtml = page.keyFindings ? `
+      <div class="card">
+        <div class="card-title">Key Findings${lbl}</div>
+        <div class="summary-text">${page.keyFindings}</div>
+        ${(page.recommendations||[]).length ? `
+          <div style="margin-top:16px;">
+            <div class="roadmap-label" style="color:#2F27CE;margin-bottom:10px;">Recommendations</div>
+            ${(page.recommendations||[]).map(rec => `<div class="win-item"><span class="win-icon" style="color:#2F27CE;font-size:14px;">→</span><span class="win-text">${rec}</span></div>`).join('')}
+          </div>` : ''}
+      </div>` : '';
+
+    const longTerm = (page.phasedRoadmap?.longTerm||[]);
+
+    return `
+      ${pageHeading}
+      <div class="card">
+        <div class="card-title">10-Category Breakdown${lbl}</div>
+        <div class="cat-grid">${catGrid}</div>
+      </div>
+      ${findingsHtml}
+      <div class="card">
+        <div class="card-title">Top 5 UX Issues${lbl}</div>
+        ${(page.top5Issues||[]).map(i => `<div class="issue-item"><span class="issue-icon">!</span><span class="issue-text">${i}</span></div>`).join('')}
+      </div>
+      <div class="card">
+        <div class="card-title">Top 5 Quick Wins${lbl}</div>
+        ${(page.quickWins||[]).map(w => `<div class="win-item"><span class="win-icon">✓</span><span class="win-text">${w}</span></div>`).join('')}
+      </div>
+      <div class="card">
+        <div class="card-title">Phased Improvement Roadmap${lbl}</div>
+        <div class="roadmap-section">
+          <div class="roadmap-label" style="color:#C22400;">Immediate — This Week</div>
+          ${(page.phasedRoadmap?.immediate||[]).map(i => `<div class="roadmap-item">${i}</div>`).join('')}
+        </div>
+        <div class="roadmap-section">
+          <div class="roadmap-label" style="color:#B85C00;">30-Day Plan</div>
+          ${(page.phasedRoadmap?.thirtyDay||[]).map(i => `<div class="roadmap-item">${i}</div>`).join('')}
+        </div>
+        ${longTerm.length ? `<div class="roadmap-section">
+          <div class="roadmap-label" style="color:#1D7A45;">Long Term (60–90 Days)</div>
+          ${longTerm.map(i => `<div class="roadmap-item">${i}</div>`).join('')}
+        </div>` : ''}
       </div>`;
+  }
 
-  // Issues & wins
-  const issuesHtml = isPro
-    ? `<div class="card">
-        <div class="card-title">Top 5 UX Issues</div>
-        ${(r.top5Issues||[]).map(i => `<div class="issue-item"><span class="issue-icon">!</span><span class="issue-text">${i}</span></div>`).join('')}
-      </div>`
-    : `<div class="card">
-        <div class="card-title">Main UX Issues</div>
-        ${r.topIssue ? `
-          <div class="issue-card">
-            <div><span class="issue-card-title">${r.topIssue.title||''}</span><span class="sev-badge" style="background:${sevColor(r.topIssue.severity||'High')}">${r.topIssue.severity||'High'}</span></div>
-            <div style="font-size:13px;color:#3D3C55;margin-top:6px;">${r.topIssue.description||''}</div>
-          </div>
-          <div style="margin-top:12px;padding:12px;background:#F4F3FF;border-radius:8px;font-size:12px;color:#6B6A80;">+ 4 more issues in the Pro report</div>
-        ` : '<p style="font-size:13px;color:#6B6A80;">No issues data available.</p>'}
-      </div>`;
+  // ── FREE: legacy flat sections ────────────────────────────
+  const freeCatHtml = `<div class="card">
+    <div class="card-title">Category Snapshot</div>
+    <p style="font-size:13px;color:#6B6A80;margin:0 0 16px;">Your free audit includes your overall UX score. Upgrade to Pro to see all 10 category scores.</p>
+    <a href="https://audit.creativebridge.co.za" style="display:inline-block;background:#2F27CE;color:#fff;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;text-decoration:none;">Get Full Report — R499 →</a>
+  </div>`;
 
-  const winsHtml = isPro
-    ? `<div class="card">
-        <div class="card-title">Top 5 Quick Wins</div>
-        ${(r.top5QuickWins||[]).map(w => `<div class="win-item"><span class="win-icon">✓</span><span class="win-text">${w}</span></div>`).join('')}
-      </div>`
-    : `<div class="card">
-        <div class="card-title">Quick Wins</div>
-        ${r.topQuickWin ? `
-          <div class="win-item">
-            <span class="win-icon">✓</span>
-            <span class="win-text">${r.topQuickWin.recommendation||''} <span style="color:#9998B0;font-size:11px;">· Effort: ${r.topQuickWin.effort||''} · Impact: ${r.topQuickWin.impact||''}</span></span>
-          </div>
-          <div style="margin-top:12px;padding:12px;background:#F4F3FF;border-radius:8px;font-size:12px;color:#6B6A80;">+ 4 more quick wins in the Pro report</div>
-        ` : '<p style="font-size:13px;color:#6B6A80;">No quick wins data available.</p>'}
-      </div>`;
+  const freeIssuesHtml = `<div class="card">
+    <div class="card-title">Main UX Issues</div>
+    ${r.topIssue ? `
+      <div class="issue-card">
+        <div><span class="issue-card-title">${r.topIssue.title||''}</span><span class="sev-badge" style="background:${sevColor(r.topIssue.severity||'High')}">${r.topIssue.severity||'High'}</span></div>
+        <div style="font-size:13px;color:#3D3C55;margin-top:6px;">${r.topIssue.description||''}</div>
+      </div>
+      <div style="margin-top:12px;padding:12px;background:#F4F3FF;border-radius:8px;font-size:12px;color:#6B6A80;">+ 4 more issues in the Pro report</div>
+    ` : '<p style="font-size:13px;color:#6B6A80;">No issues data available.</p>'}
+  </div>`;
 
-  // Strengths (free only)
-  const strengthsHtml = '';
+  const freeWinsHtml = `<div class="card">
+    <div class="card-title">Quick Wins</div>
+    ${r.topQuickWin ? `
+      <div class="win-item">
+        <span class="win-icon">✓</span>
+        <span class="win-text">${r.topQuickWin.recommendation||''} <span style="color:#9998B0;font-size:11px;">· Effort: ${r.topQuickWin.effort||''} · Impact: ${r.topQuickWin.impact||''}</span></span>
+      </div>
+      <div style="margin-top:12px;padding:12px;background:#F4F3FF;border-radius:8px;font-size:12px;color:#6B6A80;">+ 4 more quick wins in the Pro report</div>
+    ` : '<p style="font-size:13px;color:#6B6A80;">No quick wins data available.</p>'}
+  </div>`;
 
-  // Roadmap (pro only)
-  const roadmapHtml = isPro ? `<div class="card">
-    <div class="card-title">Phased Improvement Roadmap</div>
-    <div class="roadmap-section">
-      <div class="roadmap-label" style="color:#C22400;">Immediate — This Week</div>
-      ${(r.phasedRoadmap?.immediate||[]).map(i => `<div class="roadmap-item">${i}</div>`).join('')}
-    </div>
-    <div class="roadmap-section">
-      <div class="roadmap-label" style="color:#B85C00;">30-Day Plan</div>
-      ${(r.phasedRoadmap?.thirtyDay||[]).map(i => `<div class="roadmap-item">${i}</div>`).join('')}
-    </div>
-    <div class="roadmap-section">
-      <div class="roadmap-label" style="color:#1D7A45;">Long Term (60–90 Days)</div>
-      ${(r.phasedRoadmap?.longTerm||[]).map(i => `<div class="roadmap-item">${i}</div>`).join('')}
-    </div>
-  </div>` : '';
-
-  // Upgrade CTA (free only)
   const upgradeCta = !isPro ? `<div class="upgrade-cta">
     <h3>${r.upgradePrompt?.headline||'Unlock the full UX report'}</h3>
     <p>${r.upgradePrompt?.description||''}</p>
     <a href="https://audit.creativebridge.co.za" class="upgrade-btn">${r.upgradePrompt?.cta||'Upgrade to Pro'} →</a>
   </div>` : '';
 
+  // ── NEXT STEPS (Pro only) ─────────────────────────────────
+  const nextStepsHtml = isPro && (r.nextSteps||[]).length ? `<div class="card">
+    <div class="card-title">Recommended Next Steps</div>
+    ${(r.nextSteps||[]).map((s, i) => `<div class="win-item"><span class="win-icon" style="color:#2F27CE;font-weight:800;font-size:13px;">${i+1}.</span><span class="win-text">${s}</span></div>`).join('')}
+  </div>` : '';
+
   document.getElementById('report').innerHTML = `
     <div id="pdf-content">
-      <!-- HEADER -->
       <div class="report-header" style="margin-bottom:16px;">
         <div class="report-brand">Creative<span>Bridge</span> <span style="color:#6B6A80;font-weight:300;">/</span> <span style="color:#9998B0;font-weight:400;font-size:16px;">Audit Report</span></div>
         <div class="report-meta">
@@ -289,36 +328,23 @@ function renderReport(r, tier) {
           <div class="score-hero">
             <div class="score-circle" style="border-color:${scoreColor(score)}">
               <div class="score-num" style="color:#fff">${score}</div>
-              <div class="score-max">/ 100</div>
+              <div class="score-max">${isMulti ? 'avg' : '/ 100'}</div>
             </div>
-            <div class="score-rating">${r.overallScore?.rating||''}</div>
+            <div class="score-rating">${rating}</div>
           </div>
         </div>
       </div>
 
       <div class="container" style="padding-top:0;">
-        <!-- EXECUTIVE SUMMARY -->
         ${r.executiveSummary || r.overallScore?.summary ? `<div class="card">
           <div class="card-title">${isPro ? 'Executive Summary' : 'Audit Summary'}</div>
           <div class="summary-text">${r.executiveSummary || r.overallScore?.summary || ''}</div>
         </div>` : ''}
 
-        <!-- CATEGORY SCORES -->
-        ${catScoresHtml}
+        ${isPro ? pages.map((page, i) => renderPage(page, i)).join('') : ''}
+        ${!isPro ? `${freeCatHtml}${freeIssuesHtml}${freeWinsHtml}` : ''}
 
-        <!-- ISSUES -->
-        ${issuesHtml}
-
-        <!-- WINS -->
-        ${winsHtml}
-
-        <!-- STRENGTHS (free) -->
-        ${strengthsHtml}
-
-        <!-- ROADMAP (pro) -->
-        ${roadmapHtml}
-
-        <!-- UPGRADE CTA (free) -->
+        ${nextStepsHtml}
         ${upgradeCta}
       </div>
     </div>`;
