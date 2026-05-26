@@ -83,6 +83,8 @@ button{cursor:pointer;font-family:var(--font-body);}
 .trust-check{color:var(--color-primary-300);font-weight:700;}
 
 /* ── HOW IT WORKS ────────────────────────────────────────── */
+.what-section{padding:var(--space-16) var(--space-8);border-bottom:var(--border-subtle);}
+.what-body{font-size:16px;color:var(--color-neutral-600);line-height:1.8;max-width:680px;}
 .how-section{background:var(--color-neutral-50);border-top:var(--border-subtle);border-bottom:var(--border-subtle);padding:var(--space-16) var(--space-8);}
 .container{max-width:1080px;margin:0 auto;}
 .section-label{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--primary);margin-bottom:var(--space-3);}
@@ -239,8 +241,8 @@ button{cursor:pointer;font-family:var(--font-body);}
 <!-- ── HERO ────────────────────────────────────────────── -->
 <section class="hero">
   <div class="hero-eyebrow"><span class="pulse-dot"></span> AI-Powered UX Audits &nbsp;·&nbsp; Delivered in minutes</div>
-  <h1>UX audits made easy for <em>every business</em></h1>
-  <p class="hero-sub">Creative Bridge Audit gives businesses a fast and simple way to evaluate their website or product experience by identifying usability issues, conversion friction, and design improvement opportunities in minutes.</p>
+  <h1>Improve your website experience with <em>AI-powered UX audits</em></h1>
+  <p class="hero-sub">Get fast insights into usability, conversion friction, and customer experience issues across your website or product.</p>
   <div class="hero-btns">
     <button class="btn btn-accent btn-lg" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">View Audit Plans</button>
     <button class="btn btn-ghost-dark btn-lg" onclick="openModal('pro')">Get Pro Report — R499</button>
@@ -254,6 +256,15 @@ button{cursor:pointer;font-family:var(--font-body);}
   <div class="trust-item"><span class="trust-check">✓</span> Results in under 3 minutes</div>
   <div class="trust-item"><span class="trust-check">✓</span> Your data stays private</div>
 </div>
+
+<!-- ── WHAT IS A UX AUDIT ────────────────────────────────── -->
+<section class="what-section">
+  <div class="container">
+    <div class="section-label">About UX Audits</div>
+    <h2 class="section-h2">What is a Website / UX Audit?</h2>
+    <p class="what-body">A website UX audit is a professional evaluation of your website or digital product experience. It helps identify usability problems, confusing user journeys, conversion blockers, accessibility concerns, and areas where customers may struggle or drop off. Creative Bridge Audit uses AI-powered analysis to help businesses uncover these issues quickly and provide actionable recommendations for improvement.</p>
+  </div>
+</section>
 
 <!-- ── HOW IT WORKS ─────────────────────────────────────── -->
 <section class="how-section" id="how">
@@ -469,6 +480,20 @@ function onGoalChange() {
   if (og) og.style.display = val === 'other' ? 'flex' : 'none';
 }
 
+// ── DUPLICATE CHECK ────────────────────────────────────────
+async function checkDuplicateSubmission(email, websiteUrl, tier) {
+  if (tier === 'pro') return { isDuplicate: false };
+
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/audit_submissions?select=id&email=eq.${encodeURIComponent(email)}&website_url=eq.${encodeURIComponent(websiteUrl)}&tier=eq.free&limit=1`,
+    { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } }
+  );
+
+  if (!res.ok) throw new Error('Could not verify submission history.');
+  const data = await res.json();
+  return { isDuplicate: data.length > 0 };
+}
+
 // ── SUBMIT ─────────────────────────────────────────────────
 async function submitForm() {
   const url       = document.getElementById('f-url')?.value?.trim();
@@ -566,6 +591,28 @@ async function submitForm() {
 
   formSnapshot = { websiteUrl:url, companyName:name, websiteCategory:category, mainGoalType:goalType, mainGoal:goalLabel, mainGoalOther:goalOther||'', targetUser:user, userAction:action, concerns:concerns||'', email, tier:currentTier };
 
+  // Disable submit while we check for duplicates
+  const submitBtn = document.querySelector('.form-submit');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Checking…'; }
+
+  try {
+    const { isDuplicate } = await checkDuplicateSubmission(email, url, currentTier);
+    if (isDuplicate) {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = `✦ &nbsp;Run ${currentTier==='pro'?'Pro':'Free'} Audit`; }
+      document.querySelectorAll('.dup-error').forEach(e => e.remove());
+      const errEl = document.createElement('div');
+      errEl.className = 'dup-error';
+      errEl.style.cssText = 'background:var(--color-danger-bg);border:1px solid #FFCFBF;color:var(--color-danger);padding:12px 14px;border-radius:var(--radius-md);font-size:13px;line-height:1.5;margin-bottom:14px;';
+      errEl.innerHTML = `You've already received a free audit for this website. Free audits are one per website. <a href="#pricing" onclick="closeModal()" style="color:var(--primary);font-weight:600;text-decoration:underline;">Upgrade to Pro</a> for unlimited audits, priority processing, and a detailed PDF report.`;
+      if (submitBtn) submitBtn.parentNode.insertBefore(errEl, submitBtn);
+      return;
+    }
+  } catch (checkErr) {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = `✦ &nbsp;Run ${currentTier==='pro'?'Pro':'Free'} Audit`; }
+    renderError('Could not verify your submission history. Please try again.');
+    return;
+  }
+
   renderProcessing();
 
   let s = 0;
@@ -585,7 +632,6 @@ async function submitForm() {
     const data = await response.json();
     clearInterval(stepInterval);
     if (data.success) {
-      // Audit processing in background — show email confirmation
       renderEmailSent();
     } else {
       renderError(data.error || 'Something went wrong. Please try again.');
