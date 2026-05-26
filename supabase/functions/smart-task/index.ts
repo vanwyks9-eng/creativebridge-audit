@@ -1,10 +1,12 @@
 /**
- * CreativeBridge Audit — Supabase Edge Function v5.0
+ * CreativeBridge Audit — Supabase Edge Function v6.0
  * Slug: smart-task
- * - Returns immediately after DB insert
- * - Processes Claude in background via waitUntil
- * - Sends slim summary email with link to full report page
- * - Pro tier supports 1–3 page audits with per-page breakdown + phased roadmap
+ * Report structure (Pro):
+ *   executiveSummary          — cross-page only
+ *   pages[]                   — per-page: uxScore, categoryScores, keyFindings,
+ *                               recommendations, top5Issues, quickWins, phasedRoadmap
+ *   nextSteps                 — cross-page closing advice
+ * Nothing is averaged or merged across pages.
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -33,6 +35,7 @@ const CATEGORY_RULES: Record<string, string> = {
   unsure: `CATEGORY: Auto-detect\nIdentify the most likely category from URL and content signals, then apply that category rule pack.\nUNIVERSAL BASELINE: accessibility (WCAG 2.2), Core Web Vitals, mobile, trust signals`,
 };
 
+// ── JSON PARSER ────────────────────────────────────────────
 function parseJSON(text: string): Record<string, unknown> {
   const clean = text.replace(/```json/g, "").replace(/```/g, "").trim();
   const start = clean.indexOf("{");
@@ -71,15 +74,24 @@ async function callClaude(prompt: string, maxTokens: number): Promise<string> {
   return data.content?.[0]?.text ?? "{}";
 }
 
+// ── SHARED PAGE JSON TEMPLATE ──────────────────────────────
+// Reused verbatim in both single-URL and multi-URL Pro prompts.
+const PAGE_JSON_TEMPLATE = (url: string) =>
+  `{"url":"${url}","uxScore":0,"categoryScores":[{"category":"First impression","score":0,"maxScore":10,"keyObservations":""},{"category":"Value proposition","score":0,"maxScore":10,"keyObservations":""},{"category":"Visual hierarchy","score":0,"maxScore":10,"keyObservations":""},{"category":"Navigation & IA","score":0,"maxScore":10,"keyObservations":""},{"category":"CTA visibility","score":0,"maxScore":10,"keyObservations":""},{"category":"Accessibility","score":0,"maxScore":10,"keyObservations":""},{"category":"Trust & credibility","score":0,"maxScore":10,"keyObservations":""},{"category":"Conversion friction","score":0,"maxScore":10,"keyObservations":""},{"category":"Mobile experience","score":0,"maxScore":10,"keyObservations":""},{"category":"UX maturity","score":0,"maxScore":10,"keyObservations":""}],"keyFindings":"","recommendations":["","",""],"top5Issues":["","","","",""],"quickWins":["","","","",""],"phasedRoadmap":{"immediate":["","",""],"thirtyDay":["","",""],"longTerm":[]}}`;
+
 // ── PROMPTS ────────────────────────────────────────────────
-function buildPrompt(form: Record<string, string>, tier: string): string {
+
+/**
+ * Single-URL Pro audit — one Claude call returns the full report.
+ */
+function buildSingleProPrompt(form: Record<string, string>): string {
   const rules = CATEGORY_RULES[form.websiteCategory] || CATEGORY_RULES["unsure"];
-  const date = new Date().toLocaleDateString("en-ZA", { day:"numeric", month:"long", year:"numeric" });
+  const date  = new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" });
+  const url   = form.websiteUrl;
 
-  if (tier === "pro") {
-    return `You are a senior UX consultant at Creative Bridge. Return ONLY raw JSON. No markdown. No backticks. Start with { and end with }.
+  return `You are a senior UX consultant at Creative Bridge. Return ONLY raw JSON. No markdown. No backticks. Start with { and end with }.
 
-WEBSITE: ${form.websiteUrl}
+WEBSITE: ${url}
 Company: ${form.companyName}
 Category: ${form.websiteCategory || "auto-detect"}
 Goal: ${form.mainGoal}
@@ -89,28 +101,25 @@ Concerns: ${form.concerns || "None"}
 
 ${rules}
 
-Return this exact JSON structure with real content (keep strings concise — max 2 sentences each):
-{"reportType":"Pro UX Audit","detectedCategory":"<E-commerce|SaaS|Service|Corporate|Content>","categoryConfidence":"<High|Medium|Low>","brand":"Creative Bridge","websiteUrl":"${form.websiteUrl}","companyName":"${form.companyName}","auditDate":"${date}","generatedFor":"${form.email}","overallScore":{"score":0,"maxScore":100,"rating":"","summary":""},"executiveSummary":"","categoryScores":[{"category":"First impression","score":0,"maxScore":10,"keyObservations":"","priority":"High"},{"category":"Value proposition","score":0,"maxScore":10,"keyObservations":"","priority":"High"},{"category":"Visual hierarchy","score":0,"maxScore":10,"keyObservations":"","priority":"Medium"},{"category":"Navigation & IA","score":0,"maxScore":10,"keyObservations":"","priority":"Medium"},{"category":"CTA visibility","score":0,"maxScore":10,"keyObservations":"","priority":"High"},{"category":"Accessibility","score":0,"maxScore":10,"keyObservations":"","priority":"High"},{"category":"Trust & credibility","score":0,"maxScore":10,"keyObservations":"","priority":"Medium"},{"category":"Conversion friction","score":0,"maxScore":10,"keyObservations":"","priority":"High"},{"category":"Mobile experience","score":0,"maxScore":10,"keyObservations":"","priority":"Medium"},{"category":"UX maturity","score":0,"maxScore":10,"keyObservations":"","priority":"Medium"}],"top5Issues":["","","","",""],"quickWins":["","","","",""],"phasedRoadmap":{"immediate":["","",""],"thirtyDay":["","",""],"longTerm":["","",""]},"nextSteps":["",""]}`;
-  } else {
-    return `You are a senior UX consultant at Creative Bridge. Return ONLY raw JSON. No markdown. No backticks. Start with { and end with }.
+RULES:
+- Score each category independently out of 10. The uxScore is the sum of all category scores.
+- top5Issues and quickWins are specific to this page only.
+- phasedRoadmap is specific to this page. Include longTerm ONLY if the audit findings justify strategic 60–90 day improvements; otherwise return longTerm as [].
+- executiveSummary summarises the UX health of this page (1–2 sentences).
+- nextSteps are 3–5 actionable closing recommendations from a senior UX consultant.
+- Tone: professional, clear, and actionable throughout.
 
-WEBSITE: ${form.websiteUrl}
-Company: ${form.companyName}
-Goal: ${form.mainGoal}
-Target user: ${form.targetUser}
-Desired action: ${form.userAction}
-Concerns: ${form.concerns || "None"}
-
-${rules}
-
-Return this exact JSON (keep strings concise — max 2 sentences each):
-{"reportType":"Free UX Audit","detectedCategory":"<E-commerce|SaaS|Service|Corporate|Content>","categoryConfidence":"<High|Medium|Low>","brand":"Creative Bridge","websiteUrl":"${form.websiteUrl}","companyName":"${form.companyName}","auditDate":"${date}","generatedFor":"${form.email}","overallScore":{"score":0,"maxScore":100,"rating":"","summary":""},"topIssue":{"title":"","severity":"High","description":""},"topQuickWin":{"recommendation":"","effort":"Low","impact":"High"},"upgradePrompt":{"headline":"Unlock your full UX report","description":"Your free audit shows your score and one key finding. The Pro Audit unlocks all 10 category scores, top 5 issues, 5 quick wins, accessibility review, and a phased improvement roadmap.","cta":"Get the Full Report — R499"}}`;
-  }
+Return this exact JSON (fill all strings — max 2 sentences each):
+{"reportType":"Pro UX Audit","detectedCategory":"<E-commerce|SaaS|Service|Corporate|Content>","brand":"Creative Bridge","websiteUrl":"${url}","companyName":"${form.companyName}","auditDate":"${date}","generatedFor":"${form.email}","executiveSummary":"","pages":[${PAGE_JSON_TEMPLATE(url)}],"nextSteps":["","","",""]}`;
 }
 
-// ── PER-PAGE PROMPT (multi-page Pro) ───────────────────────
+/**
+ * Per-page prompt for multi-URL Pro audits.
+ * Returns only the data for one specific page.
+ */
 function buildPagePrompt(form: Record<string, string>, url: string): string {
   const rules = CATEGORY_RULES[form.websiteCategory] || CATEGORY_RULES["unsure"];
+
   return `You are a senior UX consultant at Creative Bridge. Return ONLY raw JSON. No markdown. No backticks. Start with { and end with }.
 
 PAGE: ${url}
@@ -123,56 +132,106 @@ Concerns: ${form.concerns || "None"}
 
 ${rules}
 
-Analyse this specific page only. Return this exact JSON (keep strings concise — max 2 sentences each):
-{"url":"${url}","uxScore":0,"keyFindings":"","recommendations":["","",""]}`;
+RULES:
+- Analyse this page only. Do not reference other pages.
+- Score each category independently out of 10. The uxScore is the sum of all category scores.
+- top5Issues and quickWins are specific to this page only — never combined across pages.
+- phasedRoadmap is specific to this page. Include longTerm ONLY if audit findings justify strategic 60–90 day improvements for this page; otherwise return longTerm as [].
+- Tone: professional, clear, and actionable throughout.
+
+Return this exact JSON (fill all strings — max 2 sentences each):
+${PAGE_JSON_TEMPLATE(url)}`;
 }
 
-// ── SYNTHESIS PROMPT (combines per-page results) ───────────
+/**
+ * Synthesis prompt for multi-URL Pro audits.
+ * Receives per-page results and returns only the cross-page sections:
+ * executiveSummary and nextSteps.
+ */
 function buildSynthesisPrompt(form: Record<string, string>, pages: Record<string, unknown>[]): string {
-  const date = new Date().toLocaleDateString("en-ZA", { day:"numeric", month:"long", year:"numeric" });
-  const avgScore = Math.round(pages.reduce((sum, p) => sum + ((p.uxScore as number) || 0), 0) / pages.length);
-  const pagesContext = pages.map((p, i) =>
-    `Page ${i + 1}: ${p.url}\nScore: ${p.uxScore}/100\nKey Findings: ${p.keyFindings}\nRecommendations: ${((p.recommendations as string[]) || []).join("; ")}`
-  ).join("\n\n");
+  const pagesContext = pages.map((p, i) => {
+    const issues  = ((p.top5Issues  as string[]) || []).slice(0, 3).join("; ");
+    const wins    = ((p.quickWins   as string[]) || []).slice(0, 3).join("; ");
+    return `Page ${i + 1}: ${p.url}\nScore: ${p.uxScore}/100\nKey Findings: ${p.keyFindings}\nTop Issues: ${issues}\nQuick Wins: ${wins}`;
+  }).join("\n\n");
 
   return `You are a senior UX consultant at Creative Bridge. Return ONLY raw JSON. No markdown. No backticks. Start with { and end with }.
 
 Company: ${form.companyName}
-Pages analysed (${pages.length}): ${pages.map(p => p.url).join(", ")}
+Pages audited (${pages.length}): ${pages.map(p => p.url).join(", ")}
 
-Per-page findings:
+Per-page summaries:
 ${pagesContext}
 
-Synthesise these page analyses into a combined multi-page UX report. Identify cross-page patterns and shared issues. Return this exact JSON (keep strings concise — max 2 sentences each):
-{"detectedCategory":"<E-commerce|SaaS|Service|Corporate|Content>","executiveSummary":"","overallScore":{"score":${avgScore},"maxScore":100,"rating":"","summary":""},"top5Issues":["","","","",""],"quickWins":["","","","",""],"phasedRoadmap":{"immediate":["","",""],"thirtyDay":["","",""],"longTerm":["","",""]},"nextSteps":["",""]}`;
+Write the two cross-page sections of the report only:
+1. executiveSummary — a 2–3 sentence paragraph summarising overall UX health, common patterns, and the most critical issues found across all pages.
+2. nextSteps — 3–5 actionable closing recommendations a senior UX consultant would prioritise across all pages. Must always be included.
+
+Return this exact JSON:
+{"detectedCategory":"<E-commerce|SaaS|Service|Corporate|Content>","executiveSummary":"","nextSteps":["","","",""]}`;
 }
 
-const scoreColor = (s: number, max = 10) => { const p=(s/max)*100; return p>=75?"#1D7A45":p>=60?"#B85C00":"#C22400"; };
-const catBadgeColor: Record<string,string> = {
-  "E-commerce":"#FC2F00","SaaS":"#2F27CE","Service":"#1D7A45","Corporate":"#B85C00","Content":"#6B6A80",
+/**
+ * Free-tier prompt — single page, lightweight output.
+ */
+function buildFreePrompt(form: Record<string, string>): string {
+  const rules = CATEGORY_RULES[form.websiteCategory] || CATEGORY_RULES["unsure"];
+  const date  = new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" });
+
+  return `You are a senior UX consultant at Creative Bridge. Return ONLY raw JSON. No markdown. No backticks. Start with { and end with }.
+
+WEBSITE: ${form.websiteUrl}
+Company: ${form.companyName}
+Goal: ${form.mainGoal}
+Target user: ${form.targetUser}
+Desired action: ${form.userAction}
+Concerns: ${form.concerns || "None"}
+
+${rules}
+
+Return this exact JSON (keep strings concise — max 2 sentences each):
+{"reportType":"Free UX Audit","detectedCategory":"<E-commerce|SaaS|Service|Corporate|Content>","categoryConfidence":"<High|Medium|Low>","brand":"Creative Bridge","websiteUrl":"${form.websiteUrl}","companyName":"${form.companyName}","auditDate":"${date}","generatedFor":"${form.email}","overallScore":{"score":0,"maxScore":100,"rating":"","summary":""},"topIssue":{"title":"","severity":"High","description":""},"topQuickWin":{"recommendation":"","effort":"Low","impact":"High"},"upgradePrompt":{"headline":"Unlock your full UX report","description":"Your free audit shows your score and one key finding. The Pro Audit unlocks all 10 category scores, top 5 issues, 5 quick wins, accessibility review, and a phased improvement roadmap.","cta":"Get the Full Report — R499"}}`;
+}
+
+// ── EMAIL HELPERS ──────────────────────────────────────────
+const scoreColor = (s: number, max = 100) => { const p = (s / max) * 100; return p >= 75 ? "#1D7A45" : p >= 55 ? "#B85C00" : "#C22400"; };
+const scoreRating = (s: number) => s >= 75 ? "Strong UX Foundation" : s >= 55 ? "Needs Improvement" : "Critical Issues Found";
+const catBadgeColor: Record<string, string> = {
+  "E-commerce": "#FC2F00", "SaaS": "#2F27CE", "Service": "#1D7A45", "Corporate": "#B85C00", "Content": "#6B6A80",
 };
 
 // ── SLIM SUMMARY EMAIL ─────────────────────────────────────
 function buildSummaryEmail(r: Record<string, any>, reportUrl: string): string {
-  const cat = r.detectedCategory || "Website";
+  const tier      = r.reportType?.includes("Pro") ? "Pro" : "Free";
+  const cat       = r.detectedCategory || "Website";
   const badgeColor = catBadgeColor[cat] || "#2F27CE";
-  const score = r.overallScore?.score || 0;
-  const rating = r.overallScore?.rating || "";
-  const summary = r.overallScore?.summary || "";
-  const tier = r.reportType?.includes("Pro") ? "Pro" : "Free";
-  const isMultiPage = Array.isArray(r.pages) && r.pages.length > 1;
 
-  const topIssues = tier === "Pro"
-    ? (r.top5Issues||[]).slice(0,3).map((i: string) => `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#C22400;font-weight:700;flex-shrink:0;font-size:16px;">!</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${i}</span></div>`).join("")
-    : (r.issues||[]).slice(0,3).map((i: any) => `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#C22400;font-weight:700;flex-shrink:0;font-size:16px;">!</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${i.title||""}</span></div>`).join("");
+  // For Pro: derive overall score from pages; for Free: use overallScore field
+  const pages     = Array.isArray(r.pages) ? r.pages : [];
+  const score     = tier === "Pro"
+    ? Math.round(pages.reduce((s: number, p: any) => s + (p.uxScore || 0), 0) / Math.max(pages.length, 1))
+    : (r.overallScore?.score || 0);
+  const rating    = tier === "Pro" ? scoreRating(score) : (r.overallScore?.rating || "");
+  const summary   = tier === "Pro" ? (r.executiveSummary || "") : (r.overallScore?.summary || "");
+  const isMultiPage = pages.length > 1;
+
+  // Issues and wins from first page (email preview — full breakdown is in the report)
+  const firstPage  = pages[0] || {};
+  const topIssues  = tier === "Pro"
+    ? ((firstPage.top5Issues || []) as string[]).slice(0, 3).map((i: string) =>
+        `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#C22400;font-weight:700;flex-shrink:0;font-size:16px;">!</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${i}</span></div>`).join("")
+    : ((r.issues || []) as any[]).slice(0, 3).map((i: any) =>
+        `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#C22400;font-weight:700;flex-shrink:0;font-size:16px;">!</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${i.title || ""}</span></div>`).join("");
 
   const topWins = tier === "Pro"
-    ? (r.quickWins||[]).slice(0,3).map((w: string) => `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#1D7A45;font-weight:700;flex-shrink:0;font-size:16px;">✓</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${w}</span></div>`).join("")
-    : (r.quickWins||[]).slice(0,3).map((w: any) => `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#1D7A45;font-weight:700;flex-shrink:0;font-size:16px;">✓</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${w.recommendation||""}</span></div>`).join("");
+    ? ((firstPage.quickWins || []) as string[]).slice(0, 3).map((w: string) =>
+        `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#1D7A45;font-weight:700;flex-shrink:0;font-size:16px;">✓</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${w}</span></div>`).join("")
+    : ((r.quickWins || []) as any[]).slice(0, 3).map((w: any) =>
+        `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#1D7A45;font-weight:700;flex-shrink:0;font-size:16px;">✓</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${w.recommendation || ""}</span></div>`).join("");
 
   const multiPageNote = isMultiPage
     ? `<div style="margin-bottom:20px;background:#F4F3FF;border-radius:8px;padding:12px 16px;font-size:13px;color:#3D3C55;">
-        <strong style="color:#2F27CE;">${r.pages.length} pages audited:</strong> ${(r.pages as any[]).map((p: any) => `<a href="${p.url}" style="color:#2F27CE;">${p.url}</a>`).join(" · ")}
+        <strong style="color:#2F27CE;">${pages.length} pages audited:</strong> ${pages.map((p: any) => `<a href="${p.url}" style="color:#2F27CE;">${p.url}</a>`).join(" · ")}
       </div>`
     : "";
 
@@ -189,15 +248,15 @@ function buildSummaryEmail(r: Record<string, any>, reportUrl: string): string {
     <span style="background:${badgeColor};color:#fff;font-family:'Merriweather Sans',sans-serif;font-weight:700;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:3px 12px;border-radius:100px;">${cat} ${tier} Audit</span>
   </div>
   <div style="margin-top:12px;">
-    <div style="font-size:13px;color:#9998B0;">Website: <a href="${r.websiteUrl||""}" style="color:#B8B4FF;">${r.websiteUrl||""}</a></div>
-    <div style="font-size:13px;color:#9998B0;margin-top:3px;">Company: <span style="color:#fff;">${r.companyName||""}</span> &nbsp;·&nbsp; ${r.auditDate||""}</div>
+    <div style="font-size:13px;color:#9998B0;">Website: <a href="${r.websiteUrl || ""}" style="color:#B8B4FF;">${r.websiteUrl || ""}</a></div>
+    <div style="font-size:13px;color:#9998B0;margin-top:3px;">Company: <span style="color:#fff;">${r.companyName || ""}</span> &nbsp;·&nbsp; ${r.auditDate || ""}</div>
   </div>
 </td></tr>
 
 <!-- SCORE -->
 <tr><td style="background:#fff;padding:40px 40px 0;">
   <div style="text-align:center;padding-bottom:32px;border-bottom:1px solid #E8E7F5;">
-    <div style="width:100px;height:100px;border-radius:50%;border:5px solid ${scoreColor(score,100)};display:inline-flex;align-items:center;justify-content:center;flex-direction:column;margin-bottom:16px;">
+    <div style="width:100px;height:100px;border-radius:50%;border:5px solid ${scoreColor(score)};display:inline-flex;align-items:center;justify-content:center;flex-direction:column;margin-bottom:16px;">
       <div style="font-family:'Merriweather Sans',sans-serif;font-size:32px;font-weight:800;color:#0D0A48;line-height:1;">${score}</div>
       <div style="font-size:11px;color:#9998B0;font-weight:600;">/ 100</div>
     </div>
@@ -209,6 +268,7 @@ function buildSummaryEmail(r: Record<string, any>, reportUrl: string): string {
 <!-- KEY FINDINGS -->
 <tr><td style="background:#fff;padding:28px 40px 0;">
   ${multiPageNote}
+  ${isMultiPage ? `<div style="font-size:12px;color:#9998B0;margin-bottom:14px;">Showing top findings from page 1 — full per-page breakdown in your report.</div>` : ""}
   <table width="100%" cellpadding="0" cellspacing="0">
     <tr>
       <td width="48%" style="vertical-align:top;padding-right:12px;">
@@ -228,7 +288,7 @@ function buildSummaryEmail(r: Record<string, any>, reportUrl: string): string {
 <tr><td style="background:#fff;padding:32px 40px 40px;">
   <div style="text-align:center;background:#F4F3FF;border-radius:12px;padding:28px;">
     <div style="font-family:'Merriweather Sans',sans-serif;font-size:16px;font-weight:800;color:#0D0A48;margin-bottom:8px;">View your full report</div>
-    <div style="font-size:13px;color:#6B6A80;margin-bottom:20px;">All ${tier === "Pro" ? "10 category scores, per-page breakdown, phased roadmap" : "5 category scores, strengths, issues, and quick wins"}. Download as PDF to share with your team.</div>
+    <div style="font-size:13px;color:#6B6A80;margin-bottom:20px;">${tier === "Pro" ? `Per-page UX scores, category breakdowns, phased roadmap${isMultiPage ? " across all " + pages.length + " pages" : ""}, and recommended next steps.` : "5 category scores, strengths, issues, and quick wins."} Download as PDF to share with your team.</div>
     <a href="${reportUrl}" style="display:inline-block;background:#2F27CE;color:#fff;font-family:'Merriweather Sans',sans-serif;font-weight:700;font-size:14px;padding:14px 32px;border-radius:8px;text-decoration:none;">View & Download Report →</a>
   </div>
   ${tier === "Free" ? `<div style="margin-top:20px;text-align:center;background:#FFF0EC;border:1.5px solid #FC2F00;border-radius:8px;padding:16px;">
@@ -254,41 +314,44 @@ async function sendEmail(to: string, subject: string, html: string) {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${RESEND_KEY}` },
-    body: JSON.stringify({ from: "Creative Bridge Audit <audit@creativebridge.co.za>", to: [to], subject, html, reply_to: "audit@creativebridge.co.za", headers: { "List-Unsubscribe": "<mailto:audit@creativebridge.co.za?subject=unsubscribe>", "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }),
+    body: JSON.stringify({
+      from: "Creative Bridge Audit <audit@creativebridge.co.za>",
+      to: [to], subject, html,
+      reply_to: "audit@creativebridge.co.za",
+      headers: {
+        "List-Unsubscribe": "<mailto:audit@creativebridge.co.za?subject=unsubscribe>",
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
+    }),
   });
   const data = await res.json();
   console.log("Resend:", JSON.stringify(data));
   return data;
 }
 
+// ── AUDIT PROCESSOR ────────────────────────────────────────
 async function processAudit(form: Record<string, string>, submissionId: string) {
   const tier = form.tier === "pro" ? "pro" : "free";
   try {
     let report: Record<string, any>;
-    const date = new Date().toLocaleDateString("en-ZA", { day:"numeric", month:"long", year:"numeric" });
+    const date = new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" });
 
     if (tier === "pro") {
-      // Collect submitted URLs (filter out empty/missing)
       const urls = [form.websiteUrl, form.url_2, form.url_3].filter(Boolean) as string[];
 
       if (urls.length === 1) {
-        // Single URL — standard Pro audit
-        const prompt = buildPrompt(form, "pro");
-        const text = await callClaude(prompt, 6000);
+        // Single URL — one call returns the full report with pages[0]
+        const text = await callClaude(buildSingleProPrompt(form), 6000);
         report = parseJSON(text);
       } else {
-        // Multi-page — run one Claude call per URL, then synthesise
+        // Multi-URL — one call per page, then synthesise cross-page sections
         const pageResults: Record<string, unknown>[] = [];
         for (const url of urls) {
-          const pagePrompt = buildPagePrompt(form, url);
-          const pageText = await callClaude(pagePrompt, 1500);
-          const pageData = parseJSON(pageText);
-          pageResults.push(pageData);
+          const text = await callClaude(buildPagePrompt(form, url), 2500);
+          pageResults.push(parseJSON(text));
         }
 
-        // Synthesis call to generate cross-page summary + roadmap
-        const synthPrompt = buildSynthesisPrompt(form, pageResults);
-        const synthText = await callClaude(synthPrompt, 3000);
+        const synthText = await callClaude(buildSynthesisPrompt(form, pageResults), 2000);
         const synthesis = parseJSON(synthText);
 
         report = {
@@ -298,24 +361,23 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
           companyName: form.companyName,
           auditDate: date,
           generatedFor: form.email,
-          ...synthesis,
+          detectedCategory: synthesis.detectedCategory || "",
+          executiveSummary: synthesis.executiveSummary || "",
           pages: pageResults,
+          nextSteps: synthesis.nextSteps || [],
         };
       }
     } else {
-      // Free tier — single page
-      const prompt = buildPrompt(form, "free");
-      const text = await callClaude(prompt, 2000);
+      // Free tier — lightweight single-page report
+      const text = await callClaude(buildFreePrompt(form), 2000);
       report = parseJSON(text);
     }
 
-    // Build report URL and send summary email
     const reportUrl = `${REPORT_BASE}?id=${submissionId}`;
-    const html = buildSummaryEmail(report, reportUrl);
-    const subject = `Your ${(report as any).detectedCategory || ""} UX Audit — ${form.companyName}`;
+    const html      = buildSummaryEmail(report, reportUrl);
+    const subject   = `Your ${report.detectedCategory || ""} UX Audit — ${form.companyName}`;
     await sendEmail(form.email, subject, html);
 
-    // Persist full report to DB
     await supabase.from("audit_submissions")
       .update({ status: "complete", result: report, email_sent: true, email_sent_at: new Date().toISOString() })
       .eq("id", submissionId);
@@ -327,13 +389,12 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
   }
 }
 
+// ── REQUEST HANDLER ────────────────────────────────────────
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const form = await req.json();
-    const tier = form.tier === "pro" ? "pro" : "free";
-
-    // ── RATE LIMITING ─────────────────────────────────────
+    const tier  = form.tier === "pro" ? "pro" : "free";
     const email = form.email?.toLowerCase().trim();
 
     // Test account bypass — skips all restrictions
@@ -347,7 +408,7 @@ serve(async (req) => {
         .eq("email", email)
         .gte("created_at", since);
 
-      const limit = form.tier === "pro" ? 5 : 3;
+      const limit = tier === "pro" ? 5 : 3;
       if ((count ?? 0) >= limit) {
         return new Response(JSON.stringify({
           error: `Rate limit reached. You can run ${limit} audits per 24 hours. Please try again later.`
@@ -355,7 +416,6 @@ serve(async (req) => {
       }
     }
 
-    // Insert submission record upfront
     const submissionId = crypto.randomUUID();
     await supabase.from("audit_submissions").insert({
       id: submissionId,
@@ -369,7 +429,7 @@ serve(async (req) => {
       concerns: form.concerns,
       email: form.email,
       tier,
-      prompt_version: "v5.0",
+      prompt_version: "v6.0",
       status: "processing",
       created_at: new Date().toISOString(),
     });
@@ -379,7 +439,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       message: "Audit is being processed. Check your email in 1-2 minutes.",
-      submissionId
+      submissionId,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     console.error("Error:", error);
