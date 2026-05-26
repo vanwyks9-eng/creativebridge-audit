@@ -448,6 +448,11 @@ function renderForm() {
       </div>
       <input type="text" id="f-honeypot" name="website_confirm" style="display:none;position:absolute;left:-9999px;" tabindex="-1" autocomplete="off">
       <div class="form-group"><label class="form-label">Website URL *</label><input class="form-input" id="f-url" type="url" placeholder="https://yourproduct.com" value="${formSnapshot.websiteUrl||''}" ></div>
+      ${currentTier === 'pro' ? `
+      <div class="form-group"><label class="form-label">Additional Page URL 2 <span style="font-weight:400;color:var(--color-neutral-400)">(optional)</span></label><input class="form-input" id="f-url-2" type="url" placeholder="https://yourproduct.com/pricing" value="${formSnapshot.url_2||''}"></div>
+      <div class="form-group"><label class="form-label">Additional Page URL 3 <span style="font-weight:400;color:var(--color-neutral-400)">(optional)</span></label><input class="form-input" id="f-url-3" type="url" placeholder="https://yourproduct.com/contact" value="${formSnapshot.url_3||''}"></div>
+      <p style="font-size:12px;color:var(--color-neutral-400);margin-top:-6px;margin-bottom:var(--space-4);">Pro audits include up to 3 pages — e.g. homepage, pricing, and contact</p>
+      ` : ''}
       <div class="form-group"><label class="form-label">Company / Product name *</label><input class="form-input" id="f-name" type="text" placeholder="e.g. Acme SaaS" value="${formSnapshot.companyName||''}" ></div>
       <div class="form-group">
         <label class="form-label">What best describes your website? <span>(optional)</span></label>
@@ -589,7 +594,10 @@ async function submitForm() {
     return;
   }
 
-  formSnapshot = { websiteUrl:url, companyName:name, websiteCategory:category, mainGoalType:goalType, mainGoal:goalLabel, mainGoalOther:goalOther||'', targetUser:user, userAction:action, concerns:concerns||'', email, tier:currentTier };
+  const url2 = currentTier === 'pro' ? (document.getElementById('f-url-2')?.value?.trim() || '') : '';
+  const url3 = currentTier === 'pro' ? (document.getElementById('f-url-3')?.value?.trim() || '') : '';
+
+  formSnapshot = { websiteUrl:url, ...(url2 ? {url_2:url2} : {}), ...(url3 ? {url_3:url3} : {}), companyName:name, websiteCategory:category, mainGoalType:goalType, mainGoal:goalLabel, mainGoalOther:goalOther||'', targetUser:user, userAction:action, concerns:concerns||'', email, tier:currentTier };
 
   // Disable submit while we check for duplicates
   const submitBtn = document.querySelector('.form-submit');
