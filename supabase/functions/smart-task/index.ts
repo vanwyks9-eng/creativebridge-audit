@@ -15,6 +15,7 @@ const RESEND_KEY    = Deno.env.get("RESEND_API_KEY") ?? "";
 const SUPABASE_URL  = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_KEY  = Deno.env.get("SB_SERVICE_ROLE_KEY") ?? "";
 const REPORT_BASE   = "https://audit.creativebridge.co.za/report.html";
+const TEST_EMAILS   = ["stephan@creativebridge.co.za"];
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -334,18 +335,24 @@ serve(async (req) => {
 
     // ── RATE LIMITING ─────────────────────────────────────
     const email = form.email?.toLowerCase().trim();
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count } = await supabase
-      .from("audit_submissions")
-      .select("*", { count: "exact", head: true })
-      .eq("email", email)
-      .gte("created_at", since);
 
-    const limit = form.tier === "pro" ? 5 : 3;
-    if ((count ?? 0) >= limit) {
-      return new Response(JSON.stringify({
-        error: `Rate limit reached. You can run ${limit} audits per 24 hours. Please try again later.`
-      }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Test account bypass — skips all restrictions
+    const isTestAccount = TEST_EMAILS.includes(email);
+
+    if (!isTestAccount) {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count } = await supabase
+        .from("audit_submissions")
+        .select("*", { count: "exact", head: true })
+        .eq("email", email)
+        .gte("created_at", since);
+
+      const limit = form.tier === "pro" ? 5 : 3;
+      if ((count ?? 0) >= limit) {
+        return new Response(JSON.stringify({
+          error: `Rate limit reached. You can run ${limit} audits per 24 hours. Please try again later.`
+        }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     // Insert submission record upfront
