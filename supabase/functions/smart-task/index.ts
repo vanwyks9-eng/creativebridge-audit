@@ -19,7 +19,9 @@
  *   Trust signals · Error message quality
  */
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// deno-std serve is replaced by Deno.serve so that EdgeRuntime.waitUntil
+// is available — the deno-std wrapper blocks that global.
+import "https://esm.sh/jsr/@supabase/functions-js@2.4.1/src/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
@@ -423,7 +425,7 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
 }
 
 // ── REQUEST HANDLER ────────────────────────────────────────
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const form  = await req.json();
@@ -467,14 +469,16 @@ serve(async (req) => {
     });
     if (insertError) console.error("DB insert error:", JSON.stringify(insertError));
 
-    // Run audit synchronously then return response.
-    // With compact prompts and max_tokens ≤ 2000, Claude responds in ~30-50 s,
-    // comfortably within Supabase's 150-second wall-clock timeout.
-    await processAudit(form, submissionId);
+    // Detach the audit from the HTTP response.
+    // EdgeRuntime.waitUntil keeps the Deno.serve worker alive until
+    // processAudit resolves, regardless of how long Claude takes.
+    // The browser receives success:true in milliseconds; the email
+    // arrives 30-120 s later depending on Claude's response time.
+    EdgeRuntime.waitUntil(processAudit(form, submissionId));
 
     return new Response(JSON.stringify({
       success: true,
-      message: "Audit is being processed. Check your email in 1-2 minutes.",
+      message: "Audit is processing. Check your email in 1–2 minutes.",
       submissionId,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
