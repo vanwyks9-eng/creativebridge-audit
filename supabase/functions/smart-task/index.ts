@@ -68,7 +68,10 @@ function parseJSON(text: string): Record<string, unknown> {
       }
     }
   }
-  throw new Error("Failed to parse AI response: " + clean.substring(0, 300));
+  // Show the END of the response — if it's truncated there's no closing brace;
+  // if it ends with } there's a syntax error somewhere in the middle.
+  const tail = clean.substring(Math.max(0, clean.length - 300));
+  throw new Error(`Failed to parse AI response (${clean.length} chars). Tail: ...${tail}`);
 }
 
 // ── CLAUDE HELPER ──────────────────────────────────────────
@@ -386,18 +389,19 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
     const urls = [form.websiteUrl, form.url_2, form.url_3].filter(Boolean) as string[];
 
     if (urls.length === 1) {
-      // v7.0 template with verbose content typically needs 2200-2800 output tokens.
-      // 3000 cap + 70 s timeout handles slow Claude runs safely within 150 s limit.
-      console.log("Calling Claude — single-URL Pro (max 3000 tokens, 70 s timeout)...");
-      const text = await callClaude(buildSingleProPrompt(form), 3000, 70_000);
+      // v7.0 template needs 2200–3300 output tokens depending on Claude verbosity.
+      // 4096 is a generous ceiling; 90 s timeout handles the worst-case generation time.
+      // Total wall-clock (1 call): 90 s + ~10 s overhead = 100 s — within 150 s limit.
+      console.log("Calling Claude — single-URL Pro (max 4096 tokens, 90 s timeout)...");
+      const text = await callClaude(buildSingleProPrompt(form), 4096, 90_000);
       report = parseJSON(text);
     } else {
-      // Per-page calls run in parallel so total = slowest page + synthesis.
-      // 2500 tokens per page × 60 s timeout; parallel so wall-clock = max(pages).
+      // Per-page calls run in parallel; wall-clock = slowest page, not sum.
+      // 3000 tokens per page / 70 s timeout; 3-URL worst case: 70 s + 40 s synthesis ≈ 115 s.
       console.log("Calling Claude — parallel page analysis for", urls.length, "URLs...");
       const pageResults = await Promise.all(
         urls.map(async (url) => {
-          const text = await callClaude(buildPagePrompt(form, url), 2500, 60_000);
+          const text = await callClaude(buildPagePrompt(form, url), 3000, 70_000);
           return parseJSON(text);
         })
       );
