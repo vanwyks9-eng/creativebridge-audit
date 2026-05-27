@@ -468,9 +468,17 @@ serve(async (req) => {
     if (insertError) console.error("DB insert error:", JSON.stringify(insertError));
 
     // Return response immediately so the browser never times out.
-    // processAudit runs in the background — Claude can take 60-120 s for a Pro audit.
+    // EdgeRuntime.waitUntil keeps the Supabase Edge Function alive after the response
+    // is sent so processAudit can finish (Claude can take 60-120 s for a Pro audit).
     const auditPromise = processAudit(form, submissionId);
-    try { (globalThis as any).EdgeRuntime.waitUntil(auditPromise); } catch (_) { /* not available locally */ }
+    try {
+      // EdgeRuntime is a bare global in the Supabase Edge Runtime — NOT on globalThis.
+      // @ts-ignore
+      EdgeRuntime.waitUntil(auditPromise);
+    } catch (_) {
+      // Not in Edge Runtime (local dev) — fall back to synchronous processing.
+      await auditPromise;
+    }
 
     return new Response(JSON.stringify({
       success: true,
