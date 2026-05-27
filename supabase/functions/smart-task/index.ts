@@ -74,21 +74,41 @@ function parseJSON(text: string): Record<string, unknown> {
 
 // ── CLAUDE HELPER ──────────────────────────────────────────
 async function callClaude(prompt: string, maxTokens: number): Promise<string> {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: maxTokens,
-      system: "You are a senior UX consultant. Return ONLY raw JSON. No markdown. No backticks. Start with { end with }.",
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
+  // Hard-abort after 50 s so processAudit's catch block runs (updates DB to
+  // "error") rather than being killed externally with no status change.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 50_000);
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      signal: controller.signal,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: maxTokens,
+        system: "You are a senior UX consultant. Return ONLY raw JSON. No markdown. No backticks. Start with { end with }.",
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+  } catch (fetchErr) {
+    clearTimeout(timer);
+    throw new Error(`Claude fetch failed: ${String(fetchErr)}`);
+  }
+  clearTimeout(timer);
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Anthropic API ${response.status}: ${body.slice(0, 300)}`);
+  }
+
   const data = await response.json();
+  console.log(`Claude ok — model:${data.model} in:${data.usage?.input_tokens} out:${data.usage?.output_tokens}`);
   return data.content?.[0]?.text ?? "{}";
 }
 
