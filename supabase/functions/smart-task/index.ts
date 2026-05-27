@@ -379,7 +379,7 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
       const urls = [form.websiteUrl, form.url_2, form.url_3].filter(Boolean) as string[];
 
       if (urls.length === 1) {
-        const text = await callClaude(buildSingleProPrompt(form), 8000);
+        const text = await callClaude(buildSingleProPrompt(form), 5000);
         report = parseJSON(text);
       } else {
         const pageResults: Record<string, unknown>[] = [];
@@ -449,7 +449,7 @@ serve(async (req) => {
     }
 
     const submissionId = crypto.randomUUID();
-    await supabase.from("audit_submissions").insert({
+    const { error: insertError } = await supabase.from("audit_submissions").insert({
       id: submissionId,
       website_url: form.websiteUrl,
       url_2: form.url_2 || null,
@@ -465,8 +465,12 @@ serve(async (req) => {
       status: "processing",
       created_at: new Date().toISOString(),
     });
+    if (insertError) console.error("DB insert error:", JSON.stringify(insertError));
 
-    await processAudit(form, submissionId);
+    // Return response immediately so the browser never times out.
+    // processAudit runs in the background — Claude can take 60-120 s for a Pro audit.
+    const auditPromise = processAudit(form, submissionId);
+    try { (globalThis as any).EdgeRuntime.waitUntil(auditPromise); } catch (_) { /* not available locally */ }
 
     return new Response(JSON.stringify({
       success: true,
@@ -474,8 +478,9 @@ serve(async (req) => {
       submissionId,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
-    console.error("Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Handler error:", msg);
+    return new Response(JSON.stringify({ error: msg || "Internal server error. Please try again." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
