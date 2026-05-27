@@ -52,24 +52,31 @@ const FRAMEWORKS = `FRAMEWORKS (apply all): ISO 9241-210 (human-centred design) 
 // ── MANDATORY PROMPT RULES (compact) ──────────────────────
 const PROMPT_RULES = `RULES: Never use the 3-click rule — use information scent instead. WCAG 2.2 is the current standard — do NOT reference WCAG 3 as current. Never imply automated output alone is sufficient for accessibility compliance — flag where manual review is required. Always identify strengths alongside problems. Every finding must cite specific observed evidence. Evidence classes (use exactly): "Observed in DOM or page content" | "Inferred from visual analysis" | "Detected by automated rule" | "Likely template issue" | "Needs manual validation". Tone: professional, clear, actionable.`;
 
-// ── JSON PARSER ────────────────────────────────────────────
+// ── JSON PARSER (self-healing) ─────────────────────────────
+// Handles truncated Claude responses: first tries the full text, then walks
+// backwards from the last } to find the largest valid parseable prefix.
+// This means a truncated-at-nextSteps response still yields a usable report.
 function parseJSON(text: string): Record<string, unknown> {
   const clean = text.replace(/```json/g, "").replace(/```/g, "").trim();
   const start = clean.indexOf("{");
   if (start === -1) throw new Error("No JSON found: " + clean.substring(0, 200));
-  let depth = 0;
-  for (let i = start; i < clean.length; i++) {
-    if (clean[i] === "{") depth++;
-    else if (clean[i] === "}") {
-      depth--;
-      if (depth === 0) {
-        try { return JSON.parse(clean.substring(start, i + 1)); }
-        catch (e) { throw new Error("JSON parse failed: " + String(e)); }
-      }
+
+  // Pass 1: try the full response (happy path — JSON is complete)
+  try { return JSON.parse(clean.slice(start)); } catch (_) {}
+
+  // Pass 2: walk backwards from each } to find the largest valid JSON prefix.
+  // Stops on first success so it always picks the outermost complete object.
+  let pos = clean.lastIndexOf("}");
+  while (pos > start) {
+    try {
+      const result = JSON.parse(clean.slice(start, pos + 1));
+      console.warn(`parseJSON repaired truncated response at char ${pos}/${clean.length}`);
+      return result;
+    } catch (_) {
+      pos = clean.lastIndexOf("}", pos - 1);
     }
   }
-  // Show the END of the response — if it's truncated there's no closing brace;
-  // if it ends with } there's a syntax error somewhere in the middle.
+
   const tail = clean.substring(Math.max(0, clean.length - 300));
   throw new Error(`Failed to parse AI response (${clean.length} chars). Tail: ...${tail}`);
 }
@@ -389,19 +396,19 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
     const urls = [form.websiteUrl, form.url_2, form.url_3].filter(Boolean) as string[];
 
     if (urls.length === 1) {
-      // v7.0 template needs 2200–3300 output tokens depending on Claude verbosity.
-      // 4096 is a generous ceiling; 90 s timeout handles the worst-case generation time.
-      // Total wall-clock (1 call): 90 s + ~10 s overhead = 100 s — within 150 s limit.
-      console.log("Calling Claude — single-URL Pro (max 4096 tokens, 90 s timeout)...");
-      const text = await callClaude(buildSingleProPrompt(form), 4096, 90_000);
+      // At ~1.4 chars/token, the v7.0 single-URL template generates ~5500-7000 chars.
+      // 6000 tokens gives headroom; 120 s covers slow Claude runs (worst: 6000/50 tok/s = 120 s).
+      // Total wall-clock: 120 s + ~10 s overhead = 130 s — within Supabase's 150 s limit.
+      console.log("Calling Claude — single-URL Pro (max 6000 tokens, 120 s timeout)...");
+      const text = await callClaude(buildSingleProPrompt(form), 6000, 120_000);
       report = parseJSON(text);
     } else {
       // Per-page calls run in parallel; wall-clock = slowest page, not sum.
-      // 3000 tokens per page / 70 s timeout; 3-URL worst case: 70 s + 40 s synthesis ≈ 115 s.
+      // 4500 tokens per page / 90 s timeout; 3-URL worst case: 90 s + 40 s synthesis ≈ 135 s.
       console.log("Calling Claude — parallel page analysis for", urls.length, "URLs...");
       const pageResults = await Promise.all(
         urls.map(async (url) => {
-          const text = await callClaude(buildPagePrompt(form, url), 3000, 70_000);
+          const text = await callClaude(buildPagePrompt(form, url), 4500, 90_000);
           return parseJSON(text);
         })
       );
