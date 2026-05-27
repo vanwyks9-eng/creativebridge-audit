@@ -46,32 +46,12 @@ const CATEGORY_RULES: Record<string, string> = {
   unsure: `CATEGORY: Auto-detect\nIdentify the most likely category from URL and content signals, then apply that category rule pack.\nUNIVERSAL BASELINE: accessibility (WCAG 2.2), Core Web Vitals, mobile, trust signals`,
 };
 
-// ── EVALUATION FRAMEWORKS ──────────────────────────────────
-const FRAMEWORKS = `EVALUATION FRAMEWORKS — apply all of the following to every page:
-1. ISO 9241-210: human-centred design — involve users, iterate, evaluate holistically
-2. ISO 9241-11: usability as effectiveness, efficiency, and satisfaction in context of use
-3. ISO 9241-110: seven interaction principles — suitability for tasks, self-descriptiveness, conformity with user expectations, learnability, controllability, error robustness, user engagement
-4. Nielsen Norman Group 10 Heuristics (2024 updated): visibility of system status, match with real world, user control & freedom, consistency & standards, error prevention, recognition over recall, flexibility & efficiency, aesthetic & minimalist design, error recovery, help & documentation
-5. GOV.UK task-based benchmarking: assess task success, time to complete, abandonment, perceived difficulty, and user confidence
-6. WCAG 2.2: semantic structure, labels, contrast ratios, minimum target size (24×24px), keyboard navigation, error handling, accessible authentication. WCAG 2.2 is the current compliance standard. Do NOT reference WCAG 3 as a current standard — it may only be mentioned as a forward-looking lens if directly relevant
-7. Core Web Vitals: LCP ≤ 2.5s, INP ≤ 200ms, CLS ≤ 0.1. Classify evidence as field data / lab data / inferred from page structure
-8. Information scent: label clarity, predictability of destinations, cognitive effort required. Do NOT penalise pages for click depth alone — the 3-click rule is not supported by evidence and must never be used
-9. Content quality: plain language, readability, front-loaded headings, user-focused copy
-10. Trust signals: design quality, upfront disclosure, current content, social proof, real contact paths
-11. Error message quality: visible, constructive, plainspoken, respectful of user effort`;
+// ── EVALUATION FRAMEWORKS (compact) ───────────────────────
+// Kept concise to minimise input-token count and response latency.
+const FRAMEWORKS = `FRAMEWORKS (apply all): ISO 9241-210 (human-centred design) · ISO 9241-11 (effectiveness, efficiency, satisfaction) · ISO 9241-110 (suitability, self-descriptiveness, conformity, learnability, controllability, error robustness, engagement) · NNG 10 Heuristics 2024 (visibility, real-world match, user control, consistency, error prevention, recognition over recall, flexibility, minimal design, error recovery, help) · GOV.UK task benchmarking (success, time, abandonment, confidence) · WCAG 2.2 — current standard (semantic structure, labels, contrast, 24×24px targets, keyboard, error handling) · Core Web Vitals (LCP ≤ 2.5s, INP ≤ 200ms, CLS ≤ 0.1 — classify all as inferred) · Information scent (label clarity, destination predictability) · Content quality (plain language, front-loaded headings) · Trust signals (design quality, disclosure, social proof, contact) · Error messages (visible, constructive, plainspoken)`;
 
-// ── MANDATORY PROMPT RULES ─────────────────────────────────
-const PROMPT_RULES = `MANDATORY RULES — follow without exception:
-- Never use the 3-click rule — it is not supported by evidence. Use information scent instead
-- Never reference WCAG 3 as a current compliance standard
-- Never imply automated output alone is sufficient for legal accessibility assurance
-- Always flag where manual expert review, assistive technology testing, or user research is still required
-- Always identify strengths alongside problems — never produce a purely critical report
-- Every finding must cite specific observed evidence — never vague opinion
-- Scoring model: severity = impact × frequency × business criticality
-- Confidence levels: deterministic / high / medium / low / needs human validation
-- Evidence classes (use exactly these): "Observed in DOM or page content" | "Inferred from visual analysis" | "Detected by automated rule" | "Likely template issue" | "Needs manual validation"
-- Tone: professional, clear, plain English, and actionable throughout`;
+// ── MANDATORY PROMPT RULES (compact) ──────────────────────
+const PROMPT_RULES = `RULES: Never use the 3-click rule — use information scent instead. WCAG 2.2 is the current standard — do NOT reference WCAG 3 as current. Never imply automated output alone is sufficient for accessibility compliance — flag where manual review is required. Always identify strengths alongside problems. Every finding must cite specific observed evidence. Evidence classes (use exactly): "Observed in DOM or page content" | "Inferred from visual analysis" | "Detected by automated rule" | "Likely template issue" | "Needs manual validation". Tone: professional, clear, actionable.`;
 
 // ── JSON PARSER ────────────────────────────────────────────
 function parseJSON(text: string): Record<string, unknown> {
@@ -153,7 +133,7 @@ ${FRAMEWORKS}
 
 ${PROMPT_RULES}
 
-Return this exact JSON (fill all strings — max 2 sentences each, except executiveSummary which may be a short paragraph):
+Return this exact JSON (be concise — max 1 sentence per string field; executiveSummary max 3 sentences):
 {"reportType":"Pro UX Audit","detectedCategory":"<E-commerce|SaaS|Service|Corporate|Content>","categoryConfidence":"<High|Medium|Low>","detectedWebsiteType":{"category":"<brochure|lead-gen|ecommerce|SaaS|booking|content publisher>","confidence":"<High|Medium|Low>","priorityUserGoals":["",""]},"localeAndLanguage":"","brand":"Creative Bridge","websiteUrl":"${url}","companyName":"${form.companyName}","auditDate":"${date}","generatedFor":"${form.email}","executiveSummary":"","auditScopeAndLimitations":{"audited":"","inferred":"","notCrawled":"","requiresValidation":""},"pages":[${PAGE_JSON_TEMPLATE(url)}],"nextSteps":["","","",""],"evidenceAppendix":{"urlsAudited":["${url}"],"auditDate":"${date}","auditScopeMode":"Automated AI analysis — all evidence inferred","confidencePerPage":[{"url":"${url}","confidence":""}],"methodsUsed":["AI content and structure analysis","Heuristic evaluation against NNG 10 / ISO 9241","WCAG 2.2 inferred assessment","Core Web Vitals inferred from page structure"],"exclusions":["Dynamic content not visible without interaction","Server-side or real-user performance metrics","Assistive technology testing","Legal accessibility assurance","User testing and task observation"]}}`;
 }
 
@@ -189,7 +169,7 @@ ${FRAMEWORKS}
 
 ${PROMPT_RULES}
 
-Analyse this specific page only. Do not reference other pages. Return this exact JSON (max 2 sentences per string):
+Analyse this specific page only. Do not reference other pages. Return this exact JSON (be concise — max 1 sentence per string field):
 ${PAGE_JSON_TEMPLATE(url)}`;
 }
 
@@ -379,15 +359,15 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
       const urls = [form.websiteUrl, form.url_2, form.url_3].filter(Boolean) as string[];
 
       if (urls.length === 1) {
-        const text = await callClaude(buildSingleProPrompt(form), 5000);
+        const text = await callClaude(buildSingleProPrompt(form), 2000);
         report = parseJSON(text);
       } else {
         const pageResults: Record<string, unknown>[] = [];
         for (const url of urls) {
-          const text = await callClaude(buildPagePrompt(form, url), 4000);
+          const text = await callClaude(buildPagePrompt(form, url), 2000);
           pageResults.push(parseJSON(text));
         }
-        const synthText = await callClaude(buildSynthesisPrompt(form, pageResults), 3000);
+        const synthText = await callClaude(buildSynthesisPrompt(form, pageResults), 1500);
         const synthesis = parseJSON(synthText);
 
         report = {
@@ -402,7 +382,7 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
         };
       }
     } else {
-      const text = await callClaude(buildFreePrompt(form), 2000);
+      const text = await callClaude(buildFreePrompt(form), 1000);
       report = parseJSON(text);
     }
 
@@ -467,18 +447,10 @@ serve(async (req) => {
     });
     if (insertError) console.error("DB insert error:", JSON.stringify(insertError));
 
-    // Return response immediately so the browser never times out.
-    // EdgeRuntime.waitUntil keeps the Supabase Edge Function alive after the response
-    // is sent so processAudit can finish (Claude can take 60-120 s for a Pro audit).
-    const auditPromise = processAudit(form, submissionId);
-    try {
-      // EdgeRuntime is a bare global in the Supabase Edge Runtime — NOT on globalThis.
-      // @ts-ignore
-      EdgeRuntime.waitUntil(auditPromise);
-    } catch (_) {
-      // Not in Edge Runtime (local dev) — fall back to synchronous processing.
-      await auditPromise;
-    }
+    // Run audit synchronously then return response.
+    // With compact prompts and max_tokens ≤ 2000, Claude responds in ~30-50 s,
+    // comfortably within Supabase's 150-second wall-clock timeout.
+    await processAudit(form, submissionId);
 
     return new Response(JSON.stringify({
       success: true,
