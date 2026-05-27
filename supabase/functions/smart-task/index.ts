@@ -371,7 +371,8 @@ async function sendEmail(to: string, subject: string, html: string) {
 // ── AUDIT PROCESSOR ────────────────────────────────────────
 async function processAudit(form: Record<string, string>, submissionId: string) {
   // Mark as running so the DB reflects in-progress state immediately.
-  await supabase.from("audit_submissions").update({ status: "running" }).eq("id", submissionId).catch(() => {});
+  // Supabase query builder is PromiseLike (no .catch()), so use try/catch.
+  try { await supabase.from("audit_submissions").update({ status: "running" }).eq("id", submissionId); } catch (_) { /* non-fatal */ }
   console.log("processAudit started — id:", submissionId);
 
   const tier = form.tier === "pro" ? "pro" : "free";
