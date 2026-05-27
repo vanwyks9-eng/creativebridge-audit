@@ -72,14 +72,10 @@ function parseJSON(text: string): Record<string, unknown> {
 }
 
 // ── CLAUDE HELPER ──────────────────────────────────────────
-async function callClaude(prompt: string, maxTokens: number): Promise<string> {
-  // Hard-abort after 55 s. The v7.0 JSON template requires ~1800–2200 output
-  // tokens; at ~50 tok/s that's up to 44 s generation time, so 55 s gives a
-  // safe margin. For 3-URL Pro, page calls run in parallel (Promise.all) so
-  // worst-case wall-clock is 55 s pages + 40 s synthesis + overhead ≈ 100 s,
-  // well under the 150 s Supabase limit.
+// timeoutMs is per-call; callers pass a value appropriate for their token budget.
+async function callClaude(prompt: string, maxTokens: number, timeoutMs = 70_000): Promise<string> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 55_000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   let response: Response;
   try {
@@ -110,7 +106,11 @@ async function callClaude(prompt: string, maxTokens: number): Promise<string> {
   }
 
   const data = await response.json();
-  console.log(`Claude ok — model:${data.model} in:${data.usage?.input_tokens} out:${data.usage?.output_tokens}`);
+  const stopReason = data.stop_reason ?? "unknown";
+  console.log(`Claude ok — stop:${stopReason} in:${data.usage?.input_tokens} out:${data.usage?.output_tokens} max:${maxTokens}`);
+  if (stopReason === "max_tokens") {
+    console.error(`TRUNCATION WARNING: Claude hit max_tokens (${maxTokens}) — response is incomplete.`);
+  }
   return data.content?.[0]?.text ?? "{}";
 }
 
@@ -386,22 +386,24 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
     const urls = [form.websiteUrl, form.url_2, form.url_3].filter(Boolean) as string[];
 
     if (urls.length === 1) {
-      // v7.0 single-URL template fills ~1800–2200 tokens — 2200 gives safe margin.
-      console.log("Calling Claude — single-URL Pro...");
-      const text = await callClaude(buildSingleProPrompt(form), 2200);
+      // v7.0 template with verbose content typically needs 2200-2800 output tokens.
+      // 3000 cap + 70 s timeout handles slow Claude runs safely within 150 s limit.
+      console.log("Calling Claude — single-URL Pro (max 3000 tokens, 70 s timeout)...");
+      const text = await callClaude(buildSingleProPrompt(form), 3000, 70_000);
       report = parseJSON(text);
     } else {
-      // Run all page analyses in parallel so 3-URL Pro takes max(page_time)
-      // rather than sum(page_time) — keeps total under the 150 s wall-clock limit.
+      // Per-page calls run in parallel so total = slowest page + synthesis.
+      // 2500 tokens per page × 60 s timeout; parallel so wall-clock = max(pages).
       console.log("Calling Claude — parallel page analysis for", urls.length, "URLs...");
       const pageResults = await Promise.all(
         urls.map(async (url) => {
-          const text = await callClaude(buildPagePrompt(form, url), 1800);
+          const text = await callClaude(buildPagePrompt(form, url), 2500, 60_000);
           return parseJSON(text);
         })
       );
+      // Synthesis is cross-page text only — 1200 tokens is ample, 40 s timeout.
       console.log("Calling Claude — synthesis...");
-      const synthText = await callClaude(buildSynthesisPrompt(form, pageResults), 1000);
+      const synthText = await callClaude(buildSynthesisPrompt(form, pageResults), 1200, 40_000);
       const synthesis = parseJSON(synthText);
       report = {
         reportType: "Pro UX Audit", brand: "Creative Bridge",
@@ -411,9 +413,9 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
       };
     }
   } else {
-    // Free template is simpler (~600–800 tokens filled) — 1000 gives safe margin.
+    // Free template is simpler — 1200 tokens, 40 s timeout.
     console.log("Calling Claude — Free tier...");
-    const text = await callClaude(buildFreePrompt(form), 1000);
+    const text = await callClaude(buildFreePrompt(form), 1200, 40_000);
     report = parseJSON(text);
   }
 
