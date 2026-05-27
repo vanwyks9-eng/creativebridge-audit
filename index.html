@@ -734,8 +734,8 @@ function renderEmailSent() {
           <polyline points="23,28 25.5,30.5 29,26" stroke="#1D7A45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <h3 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 10px;letter-spacing:-0.3px;">Your audit is being generated!</h3>
-      <p style="color:rgba(255,255,255,0.65);font-size:14px;margin:0;line-height:1.6;">We're analysing <strong style="color:#fff;">${formSnapshot.companyName}</strong> with AI. This takes <strong style="color:#fff;">1–2 minutes.</strong></p>
+      <h3 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 10px;letter-spacing:-0.3px;">Your audit is ready!</h3>
+      <p style="color:rgba(255,255,255,0.65);font-size:14px;margin:0;line-height:1.6;">We've analysed <strong style="color:#fff;">${formSnapshot.companyName}</strong> — your report is on its way.</p>
     </div>
     <div style="background:#F8F7FF;border-radius:0 0 16px 16px;padding:28px 32px 32px;text-align:center;">
       <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #E8E7F5;border-radius:10px;padding:14px 18px;margin-bottom:16px;">
@@ -743,9 +743,9 @@ function renderEmailSent() {
           <rect x="2" y="4" width="16" height="12" rx="2" stroke="#2F27CE" stroke-width="1.5"/>
           <polyline points="2,4 10,11 18,4" stroke="#2F27CE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span style="font-size:13px;color:#3D3C55;">Your full ${catLabel} report will be emailed to <strong style="color:#2F27CE;">${formSnapshot.email}</strong></span>
+        <span style="font-size:13px;color:#3D3C55;">Your full ${catLabel} report has been emailed to <strong style="color:#2F27CE;">${formSnapshot.email}</strong></span>
       </div>
-      <p style="font-size:13px;color:#6B6A80;margin:0 0 24px;line-height:1.6;">Check your inbox in <strong style="color:#3D3C55;">1–2 minutes.</strong> Don't forget to check your spam folder.</p>
+      <p style="font-size:13px;color:#6B6A80;margin:0 0 24px;line-height:1.6;">Check your inbox — your report should be there now. Don't forget to check your spam folder.</p>
       <button onclick="closeModal()" style="width:100%;background:#fff;border:2px solid #2F27CE;border-radius:10px;padding:12px 20px;cursor:pointer;font-family:inherit;color:#2F27CE;font-size:14px;font-weight:600;" onmouseover="this.style.background='#2F27CE';this.style.color='#fff';" onmouseout="this.style.background='#fff';this.style.color='#2F27CE';">Close</button>
     </div>`;
 }

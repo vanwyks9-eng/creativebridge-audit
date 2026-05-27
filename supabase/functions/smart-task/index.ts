@@ -19,9 +19,6 @@
  *   Trust signals · Error message quality
  */
 
-// deno-std serve is replaced by Deno.serve so that EdgeRuntime.waitUntil
-// is available — the deno-std wrapper blocks that global.
-import "https://esm.sh/jsr/@supabase/functions-js@2.4.1/src/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
@@ -76,10 +73,11 @@ function parseJSON(text: string): Record<string, unknown> {
 
 // ── CLAUDE HELPER ──────────────────────────────────────────
 async function callClaude(prompt: string, maxTokens: number): Promise<string> {
-  // Hard-abort after 50 s so processAudit's catch block runs (updates DB to
-  // "error") rather than being killed externally with no status change.
+  // Hard-abort after 30 s per call. With synchronous execution we need to
+  // stay under the 150 s wall-clock limit: 3-URL Pro worst case = 4 × 30 s
+  // Claude + ~10 s overhead = 130 s — safely within the limit.
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 50_000);
+  const timer = setTimeout(() => controller.abort(), 30_000);
 
   let response: Response;
   try {
@@ -372,15 +370,9 @@ async function sendEmail(to: string, subject: string, html: string) {
 
 // ── AUDIT PROCESSOR ────────────────────────────────────────
 async function processAudit(form: Record<string, string>, submissionId: string) {
-  // DIAGNOSTIC: update status immediately so we can confirm the background
-  // task body is executing. If DB shows "running" after submission, waitUntil
-  // is working. If it stays "processing", waitUntil is not keeping us alive.
-  try {
-    await supabase.from("audit_submissions").update({ status: "running" }).eq("id", submissionId);
-    console.log("processAudit started — id:", submissionId);
-  } catch (diagErr) {
-    console.error("Diagnostic update failed:", diagErr);
-  }
+  // Mark as running so the DB reflects in-progress state immediately.
+  await supabase.from("audit_submissions").update({ status: "running" }).eq("id", submissionId).catch(() => {});
+  console.log("processAudit started — id:", submissionId);
 
   const tier = form.tier === "pro" ? "pro" : "free";
   try {
@@ -391,15 +383,18 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
       const urls = [form.websiteUrl, form.url_2, form.url_3].filter(Boolean) as string[];
 
       if (urls.length === 1) {
-        const text = await callClaude(buildSingleProPrompt(form), 2000);
+        // 1 500 max tokens → ~15-25 s per call; fits comfortably in 150 s limit
+        const text = await callClaude(buildSingleProPrompt(form), 1500);
         report = parseJSON(text);
       } else {
         const pageResults: Record<string, unknown>[] = [];
         for (const url of urls) {
-          const text = await callClaude(buildPagePrompt(form, url), 2000);
+          // 1 200 tokens per page; 3 pages × 30 s abort = 90 s max for this loop
+          const text = await callClaude(buildPagePrompt(form, url), 1200);
           pageResults.push(parseJSON(text));
         }
-        const synthText = await callClaude(buildSynthesisPrompt(form, pageResults), 1500);
+        // 800 tokens for cross-page synthesis
+        const synthText = await callClaude(buildSynthesisPrompt(form, pageResults), 800);
         const synthesis = parseJSON(synthText);
 
         report = {
@@ -414,7 +409,8 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
         };
       }
     } else {
-      const text = await callClaude(buildFreePrompt(form), 1000);
+      // Free tier is a single lightweight call; 800 tokens is plenty
+      const text = await callClaude(buildFreePrompt(form), 800);
       report = parseJSON(text);
     }
 
@@ -479,16 +475,15 @@ Deno.serve(async (req) => {
     });
     if (insertError) console.error("DB insert error:", JSON.stringify(insertError));
 
-    // Detach the audit from the HTTP response.
-    // EdgeRuntime.waitUntil keeps the Deno.serve worker alive until
-    // processAudit resolves, regardless of how long Claude takes.
-    // The browser receives success:true in milliseconds; the email
-    // arrives 30-120 s later depending on Claude's response time.
-    EdgeRuntime.waitUntil(processAudit(form, submissionId));
+    // Run synchronously — processAudit completes (Claude call + email + DB
+    // update) before we return the response. Typical time: 15–40 s for Pro,
+    // 10–20 s for Free. The user sees a loading button, then a success modal
+    // once the email has already been dispatched.
+    await processAudit(form, submissionId);
 
     return new Response(JSON.stringify({
       success: true,
-      message: "Audit is processing. Check your email in 1–2 minutes.",
+      message: "Your audit is complete — check your inbox!",
       submissionId,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
