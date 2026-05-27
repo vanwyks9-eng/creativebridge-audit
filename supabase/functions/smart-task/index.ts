@@ -369,71 +369,73 @@ async function sendEmail(to: string, subject: string, html: string) {
 }
 
 // ── AUDIT PROCESSOR ────────────────────────────────────────
+// No internal try/catch — errors propagate to the handler so the real
+// error message surfaces in the frontend modal instead of being swallowed.
 async function processAudit(form: Record<string, string>, submissionId: string) {
-  // Mark as running so the DB reflects in-progress state immediately.
-  // Supabase query builder is PromiseLike (no .catch()), so use try/catch.
-  try { await supabase.from("audit_submissions").update({ status: "running" }).eq("id", submissionId); } catch (_) { /* non-fatal */ }
+  try { await supabase.from("audit_submissions").update({ status: "running" }).eq("id", submissionId); } catch (_) {}
   console.log("processAudit started — id:", submissionId);
 
   const tier = form.tier === "pro" ? "pro" : "free";
-  try {
-    let report: Record<string, any>;
-    const date = new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" });
+  const date = new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" });
 
-    if (tier === "pro") {
-      const urls = [form.websiteUrl, form.url_2, form.url_3].filter(Boolean) as string[];
+  let report: Record<string, any>;
 
-      if (urls.length === 1) {
-        // 1 500 max tokens → ~15-25 s per call; fits comfortably in 150 s limit
-        const text = await callClaude(buildSingleProPrompt(form), 1500);
-        report = parseJSON(text);
-      } else {
-        const pageResults: Record<string, unknown>[] = [];
-        for (const url of urls) {
-          // 1 200 tokens per page; 3 pages × 30 s abort = 90 s max for this loop
-          const text = await callClaude(buildPagePrompt(form, url), 1200);
-          pageResults.push(parseJSON(text));
-        }
-        // 800 tokens for cross-page synthesis
-        const synthText = await callClaude(buildSynthesisPrompt(form, pageResults), 800);
-        const synthesis = parseJSON(synthText);
+  if (tier === "pro") {
+    const urls = [form.websiteUrl, form.url_2, form.url_3].filter(Boolean) as string[];
 
-        report = {
-          reportType: "Pro UX Audit",
-          brand: "Creative Bridge",
-          websiteUrl: form.websiteUrl,
-          companyName: form.companyName,
-          auditDate: date,
-          generatedFor: form.email,
-          ...synthesis,
-          pages: pageResults,
-        };
-      }
-    } else {
-      // Free tier is a single lightweight call; 800 tokens is plenty
-      const text = await callClaude(buildFreePrompt(form), 800);
+    if (urls.length === 1) {
+      console.log("Calling Claude — single-URL Pro...");
+      const text = await callClaude(buildSingleProPrompt(form), 1500);
       report = parseJSON(text);
+    } else {
+      const pageResults: Record<string, unknown>[] = [];
+      for (const url of urls) {
+        console.log("Calling Claude — page:", url);
+        const text = await callClaude(buildPagePrompt(form, url), 1200);
+        pageResults.push(parseJSON(text));
+      }
+      console.log("Calling Claude — synthesis...");
+      const synthText = await callClaude(buildSynthesisPrompt(form, pageResults), 800);
+      const synthesis = parseJSON(synthText);
+      report = {
+        reportType: "Pro UX Audit", brand: "Creative Bridge",
+        websiteUrl: form.websiteUrl, companyName: form.companyName,
+        auditDate: date, generatedFor: form.email,
+        ...synthesis, pages: pageResults,
+      };
     }
-
-    const reportUrl = `${REPORT_BASE}?id=${submissionId}`;
-    const html      = buildSummaryEmail(report, reportUrl);
-    const subject   = `Your ${report.detectedCategory || ""} UX Audit — ${form.companyName}`;
-    await sendEmail(form.email, subject, html);
-
-    await supabase.from("audit_submissions")
-      .update({ status: "complete", result: report, email_sent: true, email_sent_at: new Date().toISOString() })
-      .eq("id", submissionId);
-
-    console.log("Audit complete:", submissionId);
-  } catch (err) {
-    console.error("processAudit error:", err);
-    await supabase.from("audit_submissions").update({ status: "error" }).eq("id", submissionId);
+  } else {
+    console.log("Calling Claude — Free tier...");
+    const text = await callClaude(buildFreePrompt(form), 800);
+    report = parseJSON(text);
   }
+
+  console.log("Claude done — building email...");
+  const reportUrl = `${REPORT_BASE}?id=${submissionId}`;
+  const html      = buildSummaryEmail(report, reportUrl);
+  const subject   = `Your ${report.detectedCategory || ""} UX Audit — ${form.companyName}`;
+
+  const emailResult = await sendEmail(form.email, subject, html);
+  console.log("Resend result id:", emailResult?.id ?? "MISSING");
+  if (!emailResult?.id) {
+    throw new Error(`Email delivery failed: ${JSON.stringify(emailResult).slice(0, 300)}`);
+  }
+
+  const { error: dbErr } = await supabase.from("audit_submissions")
+    .update({ status: "complete", result: report, email_sent: true, email_sent_at: new Date().toISOString() })
+    .eq("id", submissionId);
+  if (dbErr) console.error("DB complete-update error:", JSON.stringify(dbErr));
+
+  console.log("Audit complete:", submissionId);
 }
 
 // ── REQUEST HANDLER ────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Declare submissionId outside try so the catch block can update DB on error.
+  let submissionId: string | undefined;
+
   try {
     const form  = await req.json();
     const tier  = form.tier === "pro" ? "pro" : "free";
@@ -457,7 +459,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const submissionId = crypto.randomUUID();
+    submissionId = crypto.randomUUID();
     const { error: insertError } = await supabase.from("audit_submissions").insert({
       id: submissionId,
       website_url: form.websiteUrl,
@@ -476,10 +478,7 @@ Deno.serve(async (req) => {
     });
     if (insertError) console.error("DB insert error:", JSON.stringify(insertError));
 
-    // Run synchronously — processAudit completes (Claude call + email + DB
-    // update) before we return the response. Typical time: 15–40 s for Pro,
-    // 10–20 s for Free. The user sees a loading button, then a success modal
-    // once the email has already been dispatched.
+    // processAudit throws on any failure — errors surface as real error modals.
     await processAudit(form, submissionId);
 
     return new Response(JSON.stringify({
@@ -487,9 +486,14 @@ Deno.serve(async (req) => {
       message: "Your audit is complete — check your inbox!",
       submissionId,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("Handler error:", msg);
+    // Update DB status to error if we have a submissionId
+    if (submissionId) {
+      try { await supabase.from("audit_submissions").update({ status: "error" }).eq("id", submissionId); } catch (_) {}
+    }
     return new Response(JSON.stringify({ error: msg || "Internal server error. Please try again." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
