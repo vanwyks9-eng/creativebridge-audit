@@ -372,6 +372,16 @@ async function sendEmail(to: string, subject: string, html: string) {
 
 // ── AUDIT PROCESSOR ────────────────────────────────────────
 async function processAudit(form: Record<string, string>, submissionId: string) {
+  // DIAGNOSTIC: update status immediately so we can confirm the background
+  // task body is executing. If DB shows "running" after submission, waitUntil
+  // is working. If it stays "processing", waitUntil is not keeping us alive.
+  try {
+    await supabase.from("audit_submissions").update({ status: "running" }).eq("id", submissionId);
+    console.log("processAudit started — id:", submissionId);
+  } catch (diagErr) {
+    console.error("Diagnostic update failed:", diagErr);
+  }
+
   const tier = form.tier === "pro" ? "pro" : "free";
   try {
     let report: Record<string, any>;
