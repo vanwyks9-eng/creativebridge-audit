@@ -60,15 +60,36 @@ h1,h2,h3,h4{font-family:'Merriweather Sans',sans-serif;font-weight:700;line-heig
 .cat-name{font-family:'Merriweather Sans',sans-serif;font-weight:700;font-size:13px;color:#0D0A48;}
 .cat-score{font-family:'Merriweather Sans',sans-serif;font-weight:800;font-size:22px;line-height:1;}
 .cat-score-max{font-size:12px;color:#9998B0;font-weight:400;}
-.cat-obs{font-size:12px;color:#6B6A80;line-height:1.6;margin-bottom:8px;}
-.priority-badge{display:inline-block;border-radius:100px;padding:2px 10px;font-size:10px;font-weight:700;color:#fff;}
+.cat-obs{font-size:12px;color:#6B6A80;line-height:1.6;margin-bottom:6px;}
 
 /* SCORE BAR */
 .score-bar-wrap{margin-bottom:6px;}
 .score-bar-bg{background:#E8E7F5;border-radius:100px;height:6px;overflow:hidden;}
 .score-bar-fill{height:100%;border-radius:100px;transition:width .6s ease;}
 
-/* ISSUES / WINS */
+/* EVIDENCE BADGE */
+.ev-badge{display:inline-block;border-radius:100px;padding:2px 9px;font-size:10px;font-weight:600;margin-top:6px;white-space:nowrap;}
+
+/* KEY FINDINGS */
+.finding-row{padding:12px 0;border-bottom:1px solid #E8E7F5;}
+.finding-row:last-of-type{border-bottom:none;}
+.finding-text{font-size:14px;color:#3D3C55;line-height:1.65;}
+
+/* STRENGTHS */
+.strength-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #C3E6CB;}
+.strength-item:last-child{border-bottom:none;}
+.strength-icon{color:#1D7A45;font-weight:800;font-size:16px;flex-shrink:0;line-height:1.5;}
+.strength-text{font-size:13px;color:#1A5C36;line-height:1.6;}
+
+/* ISSUES v7 — structured */
+.issue-v7{padding:14px 0;border-bottom:1px solid #E8E7F5;}
+.issue-v7:last-child{border-bottom:none;}
+.issue-v7-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;}
+.issue-v7-meta{margin-left:28px;}
+.issue-meta-row{font-size:12px;color:#6B6A80;line-height:1.75;}
+.issue-meta-label{font-weight:700;color:#3D3C55;}
+
+/* ISSUES / WINS (shared + legacy) */
 .issue-item,.win-item{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid #E8E7F5;}
 .issue-item:last-child,.win-item:last-child{border-bottom:none;}
 .issue-icon{color:#C22400;font-weight:800;font-size:18px;flex-shrink:0;line-height:1.4;}
@@ -76,18 +97,26 @@ h1,h2,h3,h4{font-family:'Merriweather Sans',sans-serif;font-weight:700;line-heig
 .issue-text,.win-text{font-size:13px;color:#3D3C55;line-height:1.6;}
 
 /* FREE AUDIT EXTRAS */
-.strength-card{background:#EAFAF1;border:1px solid #B7E4C7;border-radius:8px;padding:14px 16px;margin-bottom:10px;}
-.strength-title{font-weight:700;font-size:13px;color:#1D7A45;margin-bottom:4px;}
 .issue-card{background:#FFF8E1;border:1px solid #F5C98A;border-radius:8px;padding:14px 16px;margin-bottom:10px;}
 .issue-card-title{font-weight:700;font-size:13px;color:#232225;}
 .sev-badge{display:inline-block;border-radius:100px;padding:2px 8px;font-size:10px;font-weight:700;color:#fff;margin-left:8px;}
-.issue-impact{font-size:12px;color:#6B6A80;font-style:italic;margin-top:4px;}
 
 /* ROADMAP */
 .roadmap-section{margin-bottom:20px;}
 .roadmap-label{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;}
 .roadmap-item{font-size:13px;color:#3D3C55;padding:8px 0;border-bottom:1px solid #E8E7F5;display:flex;gap:8px;}
 .roadmap-item::before{content:"→";color:#9998B0;flex-shrink:0;}
+
+/* AUDIT SCOPE */
+.scope-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.scope-item{background:#F4F3FF;border-radius:8px;padding:14px;}
+.scope-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+.scope-val{font-size:13px;color:#3D3C55;line-height:1.6;}
+
+/* EVIDENCE APPENDIX */
+.appendix-card{background:#F4F3FF;border-radius:12px;padding:28px;margin-bottom:16px;}
+.appendix-row{display:flex;gap:8px;font-size:12px;color:#6B6A80;line-height:1.8;margin-bottom:6px;}
+.appendix-label{font-weight:700;color:#3D3C55;min-width:150px;flex-shrink:0;}
 
 /* UPGRADE CTA */
 .upgrade-cta{background:linear-gradient(135deg,#0D0A48,#2F27CE);border-radius:12px;padding:32px;text-align:center;color:#fff;margin-bottom:16px;}
@@ -99,9 +128,6 @@ h1,h2,h3,h4{font-family:'Merriweather Sans',sans-serif;font-weight:700;line-heig
 .report-footer{text-align:center;padding:24px;color:#9998B0;font-size:12px;}
 
 /* PDF PRINT STYLES */
-
-
-/* PDF PRINT STYLES */
 @media print {
   .nav,.btn-download,.btn-back,.upgrade-cta{display:none!important;}
   body{background:#fff;}
@@ -111,8 +137,7 @@ h1,h2,h3,h4{font-family:'Merriweather Sans',sans-serif;font-weight:700;line-heig
   .report-header { page-break-after: avoid; break-after: avoid; }
   .section-title { page-break-after: avoid; break-after: avoid; }
   .score-card { page-break-inside: avoid; break-inside: avoid; display: block; }
-  .issue-item { page-break-inside: avoid; break-inside: avoid; }
-  .win-item { page-break-inside: avoid; break-inside: avoid; }
+  .issue-item,.issue-v7,.win-item,.strength-item { page-break-inside: avoid; break-inside: avoid; }
   .roadmap-item { page-break-inside: avoid; break-inside: avoid; }
 }
 </style>
@@ -147,10 +172,24 @@ h1,h2,h3,h4{font-family:'Merriweather Sans',sans-serif;font-weight:700;line-heig
 const SUPABASE_URL = "https://ptqbabqtuvvyzhbyuaqp.supabase.co";
 const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0cWJhYnF0dXZ2eXpoYnl1YXFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDY5OTAsImV4cCI6MjA5NDI4Mjk5MH0.TQQfG-4sxA22x_bzfyeHoF8ycPNXjVOjd8l3e0IXYFc";
 
-const scoreColor = s => { const p=(s/100)*100; return p>=75?'#1D7A45':p>=60?'#B85C00':'#C22400'; };
-const scoreColorCat = s => { const p=(s/10)*100; return p>=75?'#1D7A45':p>=60?'#B85C00':'#C22400'; };
-const sevColor = s => s==='High'?'#C22400':s==='Medium'?'#B85C00':'#1D7A45';
+const scoreColor    = s => { const p=(s/100)*100; return p>=75?'#1D7A45':p>=60?'#B85C00':'#C22400'; };
+const scoreColorCat = s => { const p=(s/10)*100;  return p>=75?'#1D7A45':p>=60?'#B85C00':'#C22400'; };
+const sevColor      = s => s==='High'?'#C22400':s==='Medium'?'#B85C00':'#1D7A45';
 const catBadgeColor = {"E-commerce":"#FC2F00","SaaS":"#2F27CE","Service":"#1D7A45","Corporate":"#B85C00","Content":"#6B6A80"};
+
+// Evidence class pill badge
+function evidenceBadge(cls) {
+  if (!cls) return '';
+  const map = {
+    'Observed in DOM or page content': { bg:'#EEF2FF', color:'#2F27CE' },
+    'Inferred from visual analysis':   { bg:'#F3EEFF', color:'#7B4CEF' },
+    'Detected by automated rule':      { bg:'#EAFAF1', color:'#1D7A45' },
+    'Likely template issue':           { bg:'#FFF8E1', color:'#B85C00' },
+    'Needs manual validation':         { bg:'#FFF0EE', color:'#C22400' },
+  };
+  const s = map[cls] || { bg:'#F4F3FF', color:'#6B6A80' };
+  return `<span class="ev-badge" style="background:${s.bg};color:${s.color};">${cls}</span>`;
+}
 
 async function loadReport() {
   const params = new URLSearchParams(window.location.search);
@@ -164,7 +203,7 @@ async function loadReport() {
     const rows = await res.json();
     if (!rows.length || !rows[0].result) { showError(); return; }
 
-    const r = rows[0].result;
+    const r    = rows[0].result;
     const tier = rows[0].tier;
     renderReport(r, tier);
   } catch(e) {
@@ -174,7 +213,7 @@ async function loadReport() {
 
 function showError() {
   document.getElementById('loading').style.display = 'none';
-  document.getElementById('error').style.display = 'block';
+  document.getElementById('error').style.display   = 'block';
 }
 
 function renderReport(r, tier) {
@@ -185,7 +224,7 @@ function renderReport(r, tier) {
   const badgeColor = catBadgeColor[cat] || '#2F27CE';
   const isPro      = tier === 'pro';
 
-  // v6: Pro data lives in pages[]; Free uses legacy flat structure
+  // v6/v7: Pro data lives in pages[]; Free uses legacy flat structure
   const pages   = isPro && Array.isArray(r.pages) && r.pages.length ? r.pages : [];
   const isMulti = pages.length > 1;
 
@@ -197,22 +236,27 @@ function renderReport(r, tier) {
     ? (score >= 75 ? 'Strong UX Foundation' : score >= 55 ? 'Needs Improvement' : 'Critical Issues Found')
     : (r.overallScore?.rating || '');
 
-  // ── PRO: render one full section per page ─────────────────
+  // ── PRO: render one full section per page ─────────────────────────────────
   function renderPage(page, idx) {
     const lbl = isMulti ? ` — Page ${idx + 1}` : '';
 
-    const pageHeading = isMulti ? `
-      <div style="margin:32px 0 20px;padding:14px 18px;background:#F4F3FF;border-radius:10px;border-left:4px solid #2F27CE;">
-        <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#2F27CE;margin-bottom:6px;">Page ${idx + 1} of ${pages.length}</div>
-        <div style="font-size:13px;color:#3D3C55;word-break:break-all;margin-bottom:10px;"><a href="${page.url||''}" style="color:#2F27CE;">${page.url||''}</a></div>
-        <div style="display:inline-flex;align-items:center;gap:8px;">
-          <div style="width:40px;height:40px;border-radius:50%;border:3px solid ${scoreColor(page.uxScore||0)};display:inline-flex;align-items:center;justify-content:center;">
-            <span style="font-size:13px;font-weight:800;color:#0D0A48;">${page.uxScore||0}</span>
+    // Page separator heading (multi-URL only) + single-page type label
+    const pageHeading = isMulti
+      ? `<div style="margin:32px 0 20px;padding:14px 18px;background:#F4F3FF;border-radius:10px;border-left:4px solid #2F27CE;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#2F27CE;margin-bottom:6px;">Page ${idx + 1} of ${pages.length}${page.detectedPageType ? ' · ' + page.detectedPageType : ''}</div>
+          <div style="font-size:13px;color:#3D3C55;word-break:break-all;margin-bottom:10px;"><a href="${page.url||''}" style="color:#2F27CE;">${page.url||''}</a></div>
+          <div style="display:inline-flex;align-items:center;gap:8px;">
+            <div style="width:40px;height:40px;border-radius:50%;border:3px solid ${scoreColor(page.uxScore||0)};display:inline-flex;align-items:center;justify-content:center;">
+              <span style="font-size:13px;font-weight:800;color:#0D0A48;">${page.uxScore||0}</span>
+            </div>
+            <span style="font-size:12px;color:#6B6A80;">UX Score / 100</span>
           </div>
-          <span style="font-size:12px;color:#6B6A80;">UX Score / 100</span>
-        </div>
-      </div>` : '';
+        </div>`
+      : (page.detectedPageType
+          ? `<div style="margin:16px 0 4px;"><span style="display:inline-block;background:#EEF2FF;color:#2F27CE;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;letter-spacing:.5px;">Page type: ${page.detectedPageType}</span></div>`
+          : '');
 
+    // 10-category breakdown — with evidence class badge per category
     const catGrid = (page.categoryScores||[]).map(c => `
       <div class="cat-card">
         <div class="cat-top">
@@ -223,20 +267,67 @@ function renderReport(r, tier) {
           <div class="score-bar-bg"><div class="score-bar-fill" style="width:${((c.score||0)/10)*100}%;background:${scoreColorCat(c.score||0)};"></div></div>
         </div>
         <div class="cat-obs">${c.keyObservations||''}</div>
+        ${c.evidenceClass ? evidenceBadge(c.evidenceClass) : ''}
       </div>`).join('');
 
-    const findingsHtml = page.keyFindings ? `
+    // Key findings — v7: array of {finding, evidenceClass}; v6 compat: string
+    const findingsArr = Array.isArray(page.keyFindings)
+      ? page.keyFindings
+      : (page.keyFindings ? [{ finding: page.keyFindings, evidenceClass: '' }] : []);
+
+    const findingsHtml = findingsArr.length ? `
       <div class="card">
         <div class="card-title">Key Findings${lbl}</div>
-        <div class="summary-text">${page.keyFindings}</div>
+        ${findingsArr.map(f => `
+          <div class="finding-row">
+            <div class="finding-text">${f.finding || f}</div>
+            ${(f.evidenceClass) ? evidenceBadge(f.evidenceClass) : ''}
+          </div>`).join('')}
         ${(page.recommendations||[]).length ? `
-          <div style="margin-top:16px;">
+          <div style="margin-top:20px;">
             <div class="roadmap-label" style="color:#2F27CE;margin-bottom:10px;">Recommendations</div>
             ${(page.recommendations||[]).map(rec => `<div class="win-item"><span class="win-icon" style="color:#2F27CE;font-size:14px;">→</span><span class="win-text">${rec}</span></div>`).join('')}
           </div>` : ''}
       </div>` : '';
 
-    const longTerm = (page.phasedRoadmap?.longTerm||[]);
+    // Strengths — v7 new section
+    const strengthsHtml = (page.strengths||[]).length ? `
+      <div class="card" style="background:#F0FAF4;border:1px solid #B7E4C7;">
+        <div class="card-title" style="color:#1D7A45;">Strengths${lbl}</div>
+        ${(page.strengths||[]).map(s => `
+          <div class="strength-item">
+            <span class="strength-icon">✓</span>
+            <span class="strength-text">${s}</span>
+          </div>`).join('')}
+      </div>` : '';
+
+    // Top 5 issues — v7: structured objects; v6 compat: string array
+    const issuesArr = (page.top5Issues||[]).map(i =>
+      typeof i === 'string'
+        ? { issue: i, where: '', principleViolated: '', severity: '', businessImpact: '' }
+        : i
+    );
+
+    const top5Html = issuesArr.length ? `
+      <div class="card">
+        <div class="card-title">Top 5 UX Issues${lbl}</div>
+        ${issuesArr.map(i => `
+          <div class="issue-v7">
+            <div class="issue-v7-header">
+              <span class="issue-icon">!</span>
+              <span class="issue-text" style="flex:1;">${i.issue||''}</span>
+              ${i.severity ? `<span class="sev-badge" style="background:${sevColor(i.severity)};flex-shrink:0;">${i.severity}</span>` : ''}
+            </div>
+            ${(i.where || i.principleViolated || i.businessImpact) ? `
+              <div class="issue-v7-meta">
+                ${i.where          ? `<div class="issue-meta-row"><span class="issue-meta-label">Where:</span> ${i.where}</div>` : ''}
+                ${i.principleViolated ? `<div class="issue-meta-row"><span class="issue-meta-label">Principle violated:</span> ${i.principleViolated}</div>` : ''}
+                ${i.businessImpact ? `<div class="issue-meta-row"><span class="issue-meta-label">Business impact:</span> ${i.businessImpact}</div>` : ''}
+              </div>` : ''}
+          </div>`).join('')}
+      </div>` : '';
+
+    const longTerm = (page.phasedRoadmap?.longTerm || []);
 
     return `
       ${pageHeading}
@@ -245,10 +336,8 @@ function renderReport(r, tier) {
         <div class="cat-grid">${catGrid}</div>
       </div>
       ${findingsHtml}
-      <div class="card">
-        <div class="card-title">Top 5 UX Issues${lbl}</div>
-        ${(page.top5Issues||[]).map(i => `<div class="issue-item"><span class="issue-icon">!</span><span class="issue-text">${i}</span></div>`).join('')}
-      </div>
+      ${strengthsHtml}
+      ${top5Html}
       <div class="card">
         <div class="card-title">Top 5 Quick Wins${lbl}</div>
         ${(page.quickWins||[]).map(w => `<div class="win-item"><span class="win-icon">✓</span><span class="win-text">${w}</span></div>`).join('')}
@@ -270,7 +359,7 @@ function renderReport(r, tier) {
       </div>`;
   }
 
-  // ── FREE: legacy flat sections ────────────────────────────
+  // ── FREE: legacy flat sections ────────────────────────────────────────────
   const freeCatHtml = `<div class="card">
     <div class="card-title">Category Snapshot</div>
     <p style="font-size:13px;color:#6B6A80;margin:0 0 16px;">Your free audit includes your overall UX score. Upgrade to Pro to see all 10 category scores.</p>
@@ -305,12 +394,56 @@ function renderReport(r, tier) {
     <a href="https://audit.creativebridge.co.za" class="upgrade-btn">${r.upgradePrompt?.cta||'Upgrade to Pro'} →</a>
   </div>` : '';
 
-  // ── NEXT STEPS (Pro only) ─────────────────────────────────
-  const nextStepsHtml = isPro && (r.nextSteps||[]).length ? `<div class="card">
-    <div class="card-title">Recommended Next Steps</div>
-    ${(r.nextSteps||[]).map((s, i) => `<div class="win-item"><span class="win-icon" style="color:#2F27CE;font-weight:800;font-size:13px;">${i+1}.</span><span class="win-text">${s}</span></div>`).join('')}
-  </div>` : '';
+  // ── v7.0: Detected website type ───────────────────────────────────────────
+  const websiteTypeHtml = isPro && r.detectedWebsiteType?.category ? `
+    <div class="card">
+      <div class="card-title">Detected Website Type</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:${(r.detectedWebsiteType.priorityUserGoals||[]).length ? '20px' : '0'};">
+        <span style="display:inline-block;background:#EEF2FF;color:#2F27CE;border-radius:8px;padding:6px 14px;font-family:'Merriweather Sans',sans-serif;font-weight:700;font-size:14px;">${r.detectedWebsiteType.category}</span>
+        ${r.detectedWebsiteType.confidence ? `<span style="color:#9998B0;font-size:12px;">Confidence: ${r.detectedWebsiteType.confidence}</span>` : ''}
+        ${r.localeAndLanguage ? `<span style="color:#9998B0;font-size:12px;">· ${r.localeAndLanguage}</span>` : ''}
+      </div>
+      ${(r.detectedWebsiteType.priorityUserGoals||[]).length ? `
+        <div class="roadmap-label" style="color:#2F27CE;margin-bottom:10px;">Priority User Goals</div>
+        ${(r.detectedWebsiteType.priorityUserGoals||[]).map(g => `<div class="win-item"><span class="win-icon" style="color:#2F27CE;font-size:14px;">→</span><span class="win-text">${g}</span></div>`).join('')}
+      ` : ''}
+    </div>` : '';
 
+  // ── v7.0: Audit scope & limitations (mandatory for Pro) ───────────────────
+  const scopeHtml = isPro && r.auditScopeAndLimitations ? `
+    <div class="card">
+      <div class="card-title">Audit Scope &amp; Limitations</div>
+      <div class="scope-grid">
+        ${r.auditScopeAndLimitations.audited ? `<div class="scope-item"><div class="scope-label" style="color:#1D7A45;">✓ Audited</div><div class="scope-val">${r.auditScopeAndLimitations.audited}</div></div>` : ''}
+        ${r.auditScopeAndLimitations.inferred ? `<div class="scope-item"><div class="scope-label" style="color:#7B4CEF;">~ Inferred</div><div class="scope-val">${r.auditScopeAndLimitations.inferred}</div></div>` : ''}
+        ${r.auditScopeAndLimitations.notCrawled ? `<div class="scope-item"><div class="scope-label" style="color:#C22400;">✗ Not Crawled</div><div class="scope-val">${r.auditScopeAndLimitations.notCrawled}</div></div>` : ''}
+        ${r.auditScopeAndLimitations.requiresValidation ? `<div class="scope-item"><div class="scope-label" style="color:#B85C00;">⚠ Requires Validation</div><div class="scope-val">${r.auditScopeAndLimitations.requiresValidation}</div></div>` : ''}
+      </div>
+    </div>` : '';
+
+  // ── Next steps (Pro only, cross-page) ─────────────────────────────────────
+  const nextStepsHtml = isPro && (r.nextSteps||[]).length ? `
+    <div class="card">
+      <div class="card-title">Recommended Next Steps</div>
+      ${(r.nextSteps||[]).map((s, i) => `<div class="win-item"><span class="win-icon" style="color:#2F27CE;font-weight:800;font-size:13px;">${i+1}.</span><span class="win-text">${s}</span></div>`).join('')}
+    </div>` : '';
+
+  // ── v7.0: Evidence appendix ───────────────────────────────────────────────
+  const appendixHtml = isPro && r.evidenceAppendix ? `
+    <div class="appendix-card">
+      <div class="card-title">Evidence Appendix</div>
+      ${(r.evidenceAppendix.auditDate||r.auditDate) ? `<div class="appendix-row"><span class="appendix-label">Audit Date</span>${r.evidenceAppendix.auditDate||r.auditDate||''}</div>` : ''}
+      ${r.evidenceAppendix.auditScopeMode ? `<div class="appendix-row"><span class="appendix-label">Scope Mode</span>${r.evidenceAppendix.auditScopeMode}</div>` : ''}
+      ${(r.evidenceAppendix.urlsAudited||[]).length ? `<div class="appendix-row"><span class="appendix-label">URLs Audited</span><span>${(r.evidenceAppendix.urlsAudited||[]).join(', ')}</span></div>` : ''}
+      ${(r.evidenceAppendix.methodsUsed||[]).length ? `<div class="appendix-row"><span class="appendix-label">Methods Used</span><span>${(r.evidenceAppendix.methodsUsed||[]).join(' · ')}</span></div>` : ''}
+      ${(r.evidenceAppendix.confidencePerPage||[]).length ? `<div class="appendix-row"><span class="appendix-label">Confidence per Page</span><span>${(r.evidenceAppendix.confidencePerPage||[]).map(c => typeof c==='object' ? `${c.url||''}: <strong>${c.confidence||''}</strong>` : c).join(' &nbsp;·&nbsp; ')}</span></div>` : ''}
+      ${(r.evidenceAppendix.exclusions||[]).length ? `<div class="appendix-row"><span class="appendix-label">Exclusions</span><span>${(r.evidenceAppendix.exclusions||[]).join('; ')}</span></div>` : ''}
+      <div style="margin-top:16px;padding:12px 16px;background:rgba(0,0,0,0.05);border-radius:8px;font-size:11px;color:#9998B0;line-height:1.7;">
+        This report is AI-generated based on visual analysis and DOM inspection. It does not constitute a formal accessibility audit under WCAG 2.2 and should not be used as the sole basis for accessibility compliance decisions. Manual expert review and assistive technology testing are required for compliance assurance.
+      </div>
+    </div>` : '';
+
+  // ── Render ────────────────────────────────────────────────────────────────
   document.getElementById('report').innerHTML = `
     <div id="pdf-content">
       <div class="report-header" style="margin-bottom:16px;">
@@ -341,10 +474,14 @@ function renderReport(r, tier) {
           <div class="summary-text">${r.executiveSummary || r.overallScore?.summary || ''}</div>
         </div>` : ''}
 
+        ${websiteTypeHtml}
+        ${scopeHtml}
+
         ${isPro ? pages.map((page, i) => renderPage(page, i)).join('') : ''}
         ${!isPro ? `${freeCatHtml}${freeIssuesHtml}${freeWinsHtml}` : ''}
 
         ${nextStepsHtml}
+        ${appendixHtml}
         ${upgradeCta}
       </div>
     </div>`;
@@ -357,7 +494,7 @@ function downloadPDF() {
   const companyName = el.querySelector('.report-details')?.textContent?.match(/Company: (.+)/)?.[1]?.trim() || 'UX-Audit';
   const filename = `CreativeBridge-UX-Audit-${companyName.replace(/\s+/g,'-')}.pdf`;
 
-const opt = {
+  const opt = {
     margin: 0,
     filename,
     image: { type: 'jpeg', quality: 0.98 },
@@ -367,6 +504,7 @@ const opt = {
   };
   html2pdf().set(opt).from(el).save();
 }
+
 loadReport();
 </script>
 </body>
