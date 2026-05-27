@@ -73,11 +73,13 @@ function parseJSON(text: string): Record<string, unknown> {
 
 // ── CLAUDE HELPER ──────────────────────────────────────────
 async function callClaude(prompt: string, maxTokens: number): Promise<string> {
-  // Hard-abort after 30 s per call. With synchronous execution we need to
-  // stay under the 150 s wall-clock limit: 3-URL Pro worst case = 4 × 30 s
-  // Claude + ~10 s overhead = 130 s — safely within the limit.
+  // Hard-abort after 55 s. The v7.0 JSON template requires ~1800–2200 output
+  // tokens; at ~50 tok/s that's up to 44 s generation time, so 55 s gives a
+  // safe margin. For 3-URL Pro, page calls run in parallel (Promise.all) so
+  // worst-case wall-clock is 55 s pages + 40 s synthesis + overhead ≈ 100 s,
+  // well under the 150 s Supabase limit.
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 30_000);
+  const timer = setTimeout(() => controller.abort(), 55_000);
 
   let response: Response;
   try {
@@ -384,18 +386,22 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
     const urls = [form.websiteUrl, form.url_2, form.url_3].filter(Boolean) as string[];
 
     if (urls.length === 1) {
+      // v7.0 single-URL template fills ~1800–2200 tokens — 2200 gives safe margin.
       console.log("Calling Claude — single-URL Pro...");
-      const text = await callClaude(buildSingleProPrompt(form), 1500);
+      const text = await callClaude(buildSingleProPrompt(form), 2200);
       report = parseJSON(text);
     } else {
-      const pageResults: Record<string, unknown>[] = [];
-      for (const url of urls) {
-        console.log("Calling Claude — page:", url);
-        const text = await callClaude(buildPagePrompt(form, url), 1200);
-        pageResults.push(parseJSON(text));
-      }
+      // Run all page analyses in parallel so 3-URL Pro takes max(page_time)
+      // rather than sum(page_time) — keeps total under the 150 s wall-clock limit.
+      console.log("Calling Claude — parallel page analysis for", urls.length, "URLs...");
+      const pageResults = await Promise.all(
+        urls.map(async (url) => {
+          const text = await callClaude(buildPagePrompt(form, url), 1800);
+          return parseJSON(text);
+        })
+      );
       console.log("Calling Claude — synthesis...");
-      const synthText = await callClaude(buildSynthesisPrompt(form, pageResults), 800);
+      const synthText = await callClaude(buildSynthesisPrompt(form, pageResults), 1000);
       const synthesis = parseJSON(synthText);
       report = {
         reportType: "Pro UX Audit", brand: "Creative Bridge",
@@ -405,8 +411,9 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
       };
     }
   } else {
+    // Free template is simpler (~600–800 tokens filled) — 1000 gives safe margin.
     console.log("Calling Claude — Free tier...");
-    const text = await callClaude(buildFreePrompt(form), 800);
+    const text = await callClaude(buildFreePrompt(form), 1000);
     report = parseJSON(text);
   }
 
