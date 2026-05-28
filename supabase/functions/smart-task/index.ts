@@ -53,24 +53,37 @@ const FRAMEWORKS = `FRAMEWORKS (apply all): ISO 9241-210 (human-centred design) 
 const PROMPT_RULES = `RULES: Never use the 3-click rule — use information scent instead. WCAG 2.2 is the current standard — do NOT reference WCAG 3 as current. Never imply automated output alone is sufficient for accessibility compliance — flag where manual review is required. Always identify strengths alongside problems. Every finding must cite specific observed evidence. Evidence classes (use exactly): "Observed in DOM or page content" | "Inferred from visual analysis" | "Detected by automated rule" | "Likely template issue" | "Needs manual validation". Tone: professional, clear, actionable.`;
 
 // ── JSON PARSER (self-healing) ─────────────────────────────
-// Handles truncated Claude responses: first tries the full text, then walks
-// backwards from the last } to find the largest valid parseable prefix.
-// This means a truncated-at-nextSteps response still yields a usable report.
+// Handles truncated Claude responses using three progressive strategies.
 function parseJSON(text: string): Record<string, unknown> {
   const clean = text.replace(/```json/g, "").replace(/```/g, "").trim();
   const start = clean.indexOf("{");
   if (start === -1) throw new Error("No JSON found: " + clean.substring(0, 200));
 
-  // Pass 1: try the full response (happy path — JSON is complete)
+  // Pass 1: full response — happy path when JSON is complete.
   try { return JSON.parse(clean.slice(start)); } catch (_) {}
 
-  // Pass 2: walk backwards from each } to find the largest valid JSON prefix.
-  // Stops on first success so it always picks the outermost complete object.
+  // Pass 2: specific repair for v7.0 reports truncated inside nextSteps or
+  // evidenceAppendix. Those sections come AFTER pages[], so we can safely
+  // drop them and still deliver a complete page analysis.
+  for (const marker of [',"nextSteps":', ',"evidenceAppendix":']) {
+    const idx = clean.indexOf(marker, start);
+    if (idx !== -1) {
+      // Close the outer object right after the pages array.
+      const candidate = clean.slice(start, idx) + "}";
+      try {
+        const result = JSON.parse(candidate);
+        console.warn(`parseJSON repaired: stripped from '${marker}' (${clean.length} chars total)`);
+        return result;
+      } catch (_) {}
+    }
+  }
+
+  // Pass 3: walk backwards from each } — catches other truncation patterns.
   let pos = clean.lastIndexOf("}");
   while (pos > start) {
     try {
       const result = JSON.parse(clean.slice(start, pos + 1));
-      console.warn(`parseJSON repaired truncated response at char ${pos}/${clean.length}`);
+      console.warn(`parseJSON repaired via backwards-search at char ${pos}/${clean.length}`);
       return result;
     } catch (_) {
       pos = clean.lastIndexOf("}", pos - 1);
@@ -399,8 +412,12 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
       // At ~1.4 chars/token, the v7.0 single-URL template generates ~5500-7000 chars.
       // 6000 tokens gives headroom; 120 s covers slow Claude runs (worst: 6000/50 tok/s = 120 s).
       // Total wall-clock: 120 s + ~10 s overhead = 130 s — within Supabase's 150 s limit.
-      console.log("Calling Claude — single-URL Pro (max 6000 tokens, 120 s timeout)...");
-      const text = await callClaude(buildSingleProPrompt(form), 6000, 120_000);
+      // 8192 is the Claude Sonnet output ceiling. At ~0.9 chars/token the v7.0
+      // template produces ~7000-8000 chars; 8192 always fits.
+      // 130 s timeout: 8192 tok @ 80 tok/s ≈ 102 s + TTFT = ~107 s.
+      // Total wall-clock: 107 s + ~10 s overhead = ~117 s — within 150 s limit.
+      console.log("Calling Claude — single-URL Pro (max 8192 tokens, 130 s timeout)...");
+      const text = await callClaude(buildSingleProPrompt(form), 8192, 130_000);
       report = parseJSON(text);
     } else {
       // Per-page calls run in parallel; wall-clock = slowest page, not sum.
@@ -408,7 +425,7 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
       console.log("Calling Claude — parallel page analysis for", urls.length, "URLs...");
       const pageResults = await Promise.all(
         urls.map(async (url) => {
-          const text = await callClaude(buildPagePrompt(form, url), 4500, 90_000);
+          const text = await callClaude(buildPagePrompt(form, url), 6000, 110_000);
           return parseJSON(text);
         })
       );
