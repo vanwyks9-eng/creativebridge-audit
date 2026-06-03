@@ -77,9 +77,9 @@ button{cursor:pointer;font-family:var(--font-body);}
 .card-icon .cb-icon{font-size:20px;}
 .card h3{font-size:18px;letter-spacing:-0.3px;}
 .card-note{font-size:13px;color:var(--color-neutral-600);margin-bottom:var(--space-4);line-height:1.65;}
-.category-list{display:flex;flex-direction:column;gap:var(--space-2);}
-.category-item{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);background:var(--color-neutral-50);border:var(--border-subtle);border-radius:var(--radius-md);font-size:13px;color:var(--color-neutral-800);}
-.cat-dot{width:8px;height:8px;border-radius:50%;background:var(--color-primary-300);flex-shrink:0;}
+.category-list{list-style:none;display:flex;flex-direction:column;gap:var(--space-3);}
+.category-item{display:flex;align-items:center;gap:var(--space-3);font-size:14px;color:var(--color-neutral-800);}
+.cat-icon{font-size:20px;color:var(--primary);flex-shrink:0;}
 
 .receive-list{list-style:none;display:flex;flex-direction:column;gap:var(--space-3);}
 .receive-list li{display:flex;align-items:flex-start;gap:var(--space-3);font-size:14px;color:var(--color-neutral-800);line-height:1.55;}
@@ -182,13 +182,13 @@ button{cursor:pointer;font-family:var(--font-body);}
             <h3>Homepage score only</h3>
           </div>
           <p class="card-note">We analyse your homepage across these UX categories:</p>
-          <div class="category-list">
-            <div class="category-item"><div class="cat-dot"></div>Visual hierarchy</div>
-            <div class="category-item"><div class="cat-dot"></div>CTA clarity</div>
-            <div class="category-item"><div class="cat-dot"></div>Navigation</div>
-            <div class="category-item"><div class="cat-dot"></div>Readability</div>
-            <div class="category-item"><div class="cat-dot"></div>Trust indicators</div>
-          </div>
+          <ul class="category-list">
+            <li class="category-item"><span class="cb-icon cat-icon">layers</span>Visual hierarchy</li>
+            <li class="category-item"><span class="cb-icon cat-icon">ads_click</span>CTA clarity</li>
+            <li class="category-item"><span class="cb-icon cat-icon">menu</span>Navigation</li>
+            <li class="category-item"><span class="cb-icon cat-icon">article</span>Readability</li>
+            <li class="category-item"><span class="cb-icon cat-icon">verified</span>Trust indicators</li>
+          </ul>
         </div>
 
         <!-- Card 2: What You'll Receive -->
