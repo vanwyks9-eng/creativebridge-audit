@@ -207,15 +207,45 @@ button{cursor:pointer;font-family:var(--font-body);}
 /* Material icons */
 .cb-icon{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:24px;line-height:1;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;user-select:none;}
 
+/* ── WHAT YOU GET ────────────────────────────────────────── */
+.whatyouget-section{padding:var(--space-16) var(--space-8);border-top:var(--border-subtle);}
+.benefits-grid{display:flex;flex-wrap:wrap;gap:var(--space-6);justify-content:center;}
+.benefit-card{flex:0 0 calc(33.333% - 16px);background:#fff;border:var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-8);box-shadow:0 1px 6px rgba(47,39,206,.07);transition:box-shadow .2s;}
+.benefit-card:hover{box-shadow:0 4px 20px rgba(47,39,206,.12);}
+.benefit-icon-pill{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;background:var(--color-neutral-50);border:var(--border-subtle);border-radius:var(--radius-pill);margin-bottom:var(--space-4);color:var(--primary);}
+.benefit-card h4{font-size:17px;margin-bottom:var(--space-2);}
+.benefit-card p{font-size:14px;color:var(--color-neutral-600);line-height:1.65;}
+
+/* ── FREE VS PRO ─────────────────────────────────────────── */
+.comparison-section{background:var(--color-neutral-50);padding:var(--space-16) var(--space-8);border-top:var(--border-subtle);border-bottom:var(--border-subtle);}
+.comparison-wrap{overflow-x:auto;border-radius:var(--radius-lg);box-shadow:0 2px 16px rgba(47,39,206,.08);}
+.comparison-table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--radius-lg);overflow:hidden;}
+.comparison-table thead tr{background:var(--color-primary-900);}
+.comparison-table thead th{padding:18px var(--space-6);font-family:var(--font-display);font-size:13px;font-weight:700;color:rgba(255,255,255,0.6);text-align:center;letter-spacing:.5px;}
+.comparison-table thead th:first-child{text-align:left;color:rgba(255,255,255,0.45);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;}
+.comparison-table thead th.col-pro{color:#fff;font-size:15px;}
+.comparison-table tbody tr:nth-child(even){background:var(--color-neutral-50);}
+.comparison-table tbody tr:nth-child(odd){background:#fff;}
+.comparison-table tbody tr:hover{background:var(--color-primary-50);}
+.comparison-table td{padding:14px var(--space-6);font-size:14px;color:var(--color-neutral-800);border-bottom:var(--border-subtle);}
+.comparison-table td:first-child{font-weight:500;color:var(--color-neutral-900);}
+.comparison-table td.col-free,.comparison-table td.col-pro{text-align:center;font-weight:600;}
+.comparison-table td.col-pro{color:var(--primary);}
+.comparison-table tfoot td{padding:18px var(--space-6);font-family:var(--font-display);font-weight:800;font-size:16px;border-top:2px solid var(--color-primary-100);border-bottom:none;background:#fff;}
+.comparison-table tfoot td.col-pro{color:var(--primary);font-size:20px;}
+.c-yes{color:var(--color-success);font-size:18px;font-weight:700;}
+.c-no{color:var(--color-neutral-200);font-size:18px;}
+
 /* Responsive */
 @media(max-width:800px){
   .nav{padding:0 var(--space-4);}
   .nav-links{display:none;}
   .hero,.features-section,.footer-cta{padding-left:var(--space-4);padding-right:var(--space-4);}
   .hero{padding-top:72px;padding-bottom:64px;}
-  .how-section,.pricing-section{padding:var(--space-12) var(--space-4);}
+  .how-section,.pricing-section,.whatyouget-section,.comparison-section{padding:var(--space-12) var(--space-4);}
   .features-grid{grid-template-columns:1fr 1fr;}
   .pricing-grid,.steps-grid{grid-template-columns:1fr;}
+  .benefit-card{flex:0 0 100%;}
   .trust-bar{gap:var(--space-4);padding:var(--space-3) var(--space-4);}
   .modal-head,.modal-body,.result-body{padding-left:var(--space-4);padding-right:var(--space-4);}
 }
@@ -356,6 +386,137 @@ button{cursor:pointer;font-family:var(--font-body);}
         </ul>
         <button class="p-btn outline" onclick="openModal('pro')">Get In Touch</button>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── WHAT YOU GET WITH PRO ────────────────────────────── -->
+<section class="whatyouget-section">
+  <div class="container">
+    <div class="section-label">What You Get with Pro</div>
+    <h2 class="section-h2">A complete UX audit report</h2>
+    <p class="section-sub">Built on established UX methodology and frameworks — delivered by AI, structured like a senior consultant.</p>
+    <div class="benefits-grid">
+
+      <div class="benefit-card">
+        <div class="benefit-icon-pill"><span class="cb-icon">my_location</span></div>
+        <h4>Pages &amp; Scope</h4>
+        <p>Audit up to 3 URLs in a single report with per-page individual scoring and website type detection.</p>
+      </div>
+
+      <div class="benefit-card">
+        <div class="benefit-icon-pill"><span class="cb-icon">bar_chart</span></div>
+        <h4>UX Score &amp; Analysis</h4>
+        <p>Full scoring across 10+ categories including accessibility, performance, navigation, trust signals, and conversion friction.</p>
+      </div>
+
+      <div class="benefit-card">
+        <div class="benefit-icon-pill"><span class="cb-icon">check_circle</span></div>
+        <h4>Findings &amp; Recommendations</h4>
+        <p>Strengths, top 5 UX issues per page with severity ratings, quick wins, and evidence-backed recommendations.</p>
+      </div>
+
+      <div class="benefit-card">
+        <div class="benefit-icon-pill"><span class="cb-icon">map</span></div>
+        <h4>Phased Improvement Roadmap</h4>
+        <p>Prioritised action plan across three phases — This Week, 30-Day, and 60–90 Day improvements.</p>
+      </div>
+
+      <div class="benefit-card">
+        <div class="benefit-icon-pill"><span class="cb-icon">download</span></div>
+        <h4>Full Report Package</h4>
+        <p>Executive summary, audit scope, recommended next steps, and an evidence appendix from a senior UX consultant perspective.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── FREE VS PRO ───────────────────────────────────────── -->
+<section class="comparison-section">
+  <div class="container">
+    <div class="section-label">Free vs Pro</div>
+    <h2 class="section-h2">Choose the audit that fits your needs</h2>
+    <p class="section-sub">Start free to see your score. Upgrade when you're ready for the full picture.</p>
+    <div class="comparison-wrap">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Free</th>
+            <th class="col-pro">Pro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>URLs audited</td>
+            <td class="col-free">1</td>
+            <td class="col-pro">Up to 3</td>
+          </tr>
+          <tr>
+            <td>UX categories analysed</td>
+            <td class="col-free">5 core</td>
+            <td class="col-pro">10+ full</td>
+          </tr>
+          <tr>
+            <td>Overall UX score</td>
+            <td class="col-free"><span class="c-yes">✓</span></td>
+            <td class="col-pro"><span class="c-yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>Per-page individual scoring</td>
+            <td class="col-free"><span class="c-no">✗</span></td>
+            <td class="col-pro"><span class="c-yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>Strengths identified</td>
+            <td class="col-free"><span class="c-no">✗</span></td>
+            <td class="col-pro"><span class="c-yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>Top UX issues</td>
+            <td class="col-free" style="font-size:13px;color:var(--color-neutral-600);">Top 3</td>
+            <td class="col-pro" style="font-size:13px;">Top 5 per page</td>
+          </tr>
+          <tr>
+            <td>Quick wins</td>
+            <td class="col-free" style="font-size:13px;color:var(--color-neutral-600);">Top 2</td>
+            <td class="col-pro" style="font-size:13px;">Full list per page</td>
+          </tr>
+          <tr>
+            <td>Phased improvement roadmap</td>
+            <td class="col-free"><span class="c-no">✗</span></td>
+            <td class="col-pro"><span class="c-yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>Executive summary</td>
+            <td class="col-free"><span class="c-no">✗</span></td>
+            <td class="col-pro"><span class="c-yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>Recommended next steps</td>
+            <td class="col-free"><span class="c-no">✗</span></td>
+            <td class="col-pro"><span class="c-yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>Evidence appendix</td>
+            <td class="col-free"><span class="c-no">✗</span></td>
+            <td class="col-pro"><span class="c-yes">✓</span></td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Price</td>
+            <td class="col-free" style="color:var(--color-neutral-600);">Free</td>
+            <td class="col-pro">R499</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div style="text-align:center;margin-top:var(--space-8);">
+      <button class="btn btn-accent btn-lg" onclick="openModal('pro')">
+        Get Pro Audit — R499
+      </button>
     </div>
   </div>
 </section>
