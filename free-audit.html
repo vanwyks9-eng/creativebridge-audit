@@ -76,6 +76,7 @@ button{cursor:pointer;font-family:var(--font-body);}
 .card-icon{width:40px;height:40px;border-radius:var(--radius-md);background:var(--color-primary-50);border:var(--border-subtle);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;}
 .card-icon .cb-icon{font-size:20px;}
 .card h3{font-size:18px;letter-spacing:-0.3px;}
+.card-subtitle{font-size:12px;color:var(--color-neutral-400);margin-top:3px;font-family:var(--font-body);}
 .card-note{font-size:13px;color:var(--color-neutral-600);margin-bottom:var(--space-4);line-height:1.65;}
 .category-list{list-style:none;display:flex;flex-direction:column;gap:var(--space-3);}
 .category-item{display:flex;align-items:center;gap:var(--space-3);font-size:14px;color:var(--color-neutral-800);}
@@ -172,13 +173,15 @@ button{cursor:pointer;font-family:var(--font-body);}
 
       <!-- LEFT: What's Included -->
       <div class="included-col">
-        <div class="section-label">What's Included</div>
 
-        <!-- Card 1: Homepage score only -->
+        <!-- Card 1: What's Included -->
         <div class="card">
           <div class="card-head">
             <div class="card-icon"><span class="cb-icon">home</span></div>
-            <h3>Homepage score only</h3>
+            <div>
+              <h3>What's Included</h3>
+              <p class="card-subtitle">One URL · your homepage only</p>
+            </div>
           </div>
           <p class="card-note">We analyse your homepage across these UX categories:</p>
           <ul class="category-list">
