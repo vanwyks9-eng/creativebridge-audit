@@ -290,20 +290,22 @@ function buildSummaryEmail(r: Record<string, any>, reportUrl: string): string {
   const isMultiPage = pages.length > 1;
   const firstPage   = pages[0] || {};
 
-  // Issues — handle both structured objects and plain strings
+  // Issues
+  const issueRow = (text: string) =>
+    `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#C22400;font-weight:700;flex-shrink:0;font-size:16px;">!</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${text}</span></div>`;
+  const winRow  = (text: string) =>
+    `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#1D7A45;font-weight:700;flex-shrink:0;font-size:16px;">✓</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${text}</span></div>`;
+
   const topIssues = tier === "Pro"
-    ? ((firstPage.top5Issues || []) as any[]).slice(0, 3).map((i: any) => {
-        const text = typeof i === "object" ? i.issue : i;
-        return `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#C22400;font-weight:700;flex-shrink:0;font-size:16px;">!</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${text}</span></div>`;
-      }).join("")
-    : ((r.issues || []) as any[]).slice(0, 3).map((i: any) =>
-        `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#C22400;font-weight:700;flex-shrink:0;font-size:16px;">!</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${i.title || ""}</span></div>`).join("");
+    ? ((firstPage.top5Issues || []) as any[]).slice(0, 3).map((i: any) =>
+        issueRow(typeof i === "object" ? i.issue : i)).join("")
+    // Free tier: single topIssue object
+    : r.topIssue?.title ? issueRow(r.topIssue.title) : "";
 
   const topWins = tier === "Pro"
-    ? ((firstPage.quickWins || []) as string[]).slice(0, 3).map((w: string) =>
-        `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#1D7A45;font-weight:700;flex-shrink:0;font-size:16px;">✓</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${w}</span></div>`).join("")
-    : ((r.quickWins || []) as any[]).slice(0, 3).map((w: any) =>
-        `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#1D7A45;font-weight:700;flex-shrink:0;font-size:16px;">✓</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${w.recommendation || ""}</span></div>`).join("");
+    ? ((firstPage.quickWins || []) as string[]).slice(0, 3).map((w: string) => winRow(w)).join("")
+    // Free tier: single topQuickWin object
+    : r.topQuickWin?.recommendation ? winRow(r.topQuickWin.recommendation) : "";
 
   const multiPageNote = isMultiPage
     ? `<div style="margin-bottom:20px;background:#F4F3FF;border-radius:8px;padding:12px 16px;font-size:13px;color:#3D3C55;">
@@ -461,7 +463,11 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
   const { error: dbErr } = await supabase.from("audit_submissions")
     .update({ status: "complete", result: report, email_sent: true, email_sent_at: new Date().toISOString() })
     .eq("id", submissionId);
-  if (dbErr) console.error("DB complete-update error:", JSON.stringify(dbErr));
+  if (dbErr) {
+    // Throw so the handler surfaces the real DB error to the frontend modal.
+    // The email was already sent; this only affects the report viewer link.
+    throw new Error(`DB save failed (email sent): ${JSON.stringify(dbErr)}`);
+  }
 
   console.log("Audit complete:", submissionId);
 }

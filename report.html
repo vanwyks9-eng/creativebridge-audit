@@ -159,8 +159,8 @@ h1,h2,h3,h4{font-family:'Merriweather Sans',sans-serif;font-weight:700;line-heig
 </div>
 
 <div id="error" class="error-state" style="display:none;">
-  <h2>Report not found</h2>
-  <p style="color:#6B6A80;margin-top:8px;">This report may have expired or the link is invalid.</p>
+  <h2 id="error-title">Report not found</h2>
+  <p id="error-msg" style="color:#6B6A80;margin-top:8px;">This report may have expired or the link is invalid.</p>
   <a href="https://audit.creativebridge.co.za" style="display:inline-block;margin-top:20px;background:#2F27CE;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Run a new audit</a>
 </div>
 
@@ -201,19 +201,31 @@ async function loadReport() {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
     });
     const rows = await res.json();
-    if (!rows.length || !rows[0].result) { showError(); return; }
-
-    const r    = rows[0].result;
-    const tier = rows[0].tier;
+    if (!rows.length) { showError('not-found'); return; }
+    const row = rows[0];
+    if (!row.result) {
+      // Row exists but result is null — show status-specific message
+      showError(row.status === 'processing' || row.status === 'running' ? 'processing' : 'error');
+      return;
+    }
+    const r    = row.result;
+    const tier = row.tier;
     renderReport(r, tier);
   } catch(e) {
     showError();
   }
 }
 
-function showError() {
+function showError(type = 'not-found') {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('error').style.display   = 'block';
+  if (type === 'processing') {
+    document.getElementById('error-title').textContent = 'Report is being generated';
+    document.getElementById('error-msg').textContent   = 'Your audit is still processing. Wait 30 seconds and refresh the page.';
+  } else if (type === 'error') {
+    document.getElementById('error-title').textContent = 'Something went wrong';
+    document.getElementById('error-msg').textContent   = 'Your audit encountered an error. Please run a new audit or contact hello@creativebridge.co.za.';
+  }
 }
 
 function renderReport(r, tier) {
