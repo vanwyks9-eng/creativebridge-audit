@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free Audit — CreativeBridge</title>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" rel="stylesheet">
+<style>
+/* ── Design Tokens (match index.html exactly) ────────────── */
+:root {
+  --text: rgb(35,34,37); --background: rgb(251,251,254);
+  --primary: rgb(47,39,206); --accent: rgb(252,47,0);
+  --color-primary-50: #EEEEFF; --color-primary-100: #DDDBFF;
+  --color-primary-200: #B8B4FF; --color-primary-300: #8078FF;
+  --color-primary-500: #2F27CE; --color-primary-600: #231CA0;
+  --color-primary-900: #0D0A48;
+  --color-accent-100: #FFCFBF; --color-accent-200: #FF9070;
+  --color-accent-500: #FC2F00; --color-accent-600: #C22400;
+  --color-neutral-50: #F4F3FF; --color-neutral-100: #E8E7F5;
+  --color-neutral-200: #C4C3D8; --color-neutral-400: #9998B0;
+  --color-neutral-600: #6B6A80; --color-neutral-800: #3D3C55;
+  --color-neutral-900: #232225;
+  --color-success-bg: #EAFAF1; --color-success: #1D7A45;
+  --color-warning-bg: #FFF8E1; --color-warning: #B85C00;
+  --color-danger-bg: #FFF0EC; --color-danger: #C22400;
+  --font-display: 'Merriweather Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px;
+  --space-6:24px; --space-8:32px; --space-12:48px; --space-16:64px;
+  --radius-sm:4px; --radius-md:8px; --radius-lg:12px; --radius-pill:9999px;
+  --border-subtle: 1px solid #DDDBFF;
+  --border-default: 1.5px solid #B8B4FF;
+  --border-strong: 1.5px solid #2F27CE;
+  --shadow-card: 0 2px 12px rgba(47,39,206,.08);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font-body);font-size:14px;background:var(--background);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;}
+h1,h2,h3,h4,h5{font-family:var(--font-display);font-weight:700;line-height:1.15;color:var(--color-neutral-900);}
+button{cursor:pointer;font-family:var(--font-body);}
+
+/* ── NAV ─────────────────────────────────────────────────── */
+.nav{position:sticky;top:0;z-index:100;background:var(--color-primary-900);border-bottom:1px solid rgba(47,39,206,0.4);display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-8);height:60px;}
+.nav-logo{font-family:var(--font-display);font-weight:800;font-size:16px;color:#fff;display:flex;align-items:center;gap:2px;text-decoration:none;}
+.nav-logo .accent-dot{color:var(--color-accent-200);}
+.nav-logo .divider{color:var(--color-neutral-600);font-weight:300;margin:0 var(--space-2);}
+.nav-logo .sub{color:var(--color-neutral-400);font-weight:500;font-size:14px;}
+.nav-cta{background:var(--primary);color:#fff;border:none;border-radius:var(--radius-md);padding:var(--space-2) var(--space-4);font-family:var(--font-display);font-weight:700;font-size:12px;transition:all .18s;text-decoration:none;display:inline-flex;align-items:center;}
+.nav-cta:hover{background:var(--color-primary-600);}
+
+/* ── PAGE HEADER ─────────────────────────────────────────── */
+.page-header{background:var(--color-primary-900);padding:56px var(--space-8) 52px;position:relative;overflow:hidden;}
+.page-header::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% -10%,rgba(47,39,206,0.55) 0%,transparent 65%);pointer-events:none;}
+.page-header .container{position:relative;}
+.back-link{display:inline-flex;align-items:center;gap:6px;color:var(--color-primary-200);font-size:13px;font-weight:500;text-decoration:none;margin-bottom:var(--space-6);transition:color .18s;}
+.back-link:hover{color:#fff;}
+.back-link .cb-icon{font-size:18px;}
+.page-eyebrow{display:inline-flex;align-items:center;gap:var(--space-2);background:rgba(184,180,255,0.1);border:1px solid rgba(184,180,255,0.2);border-radius:var(--radius-pill);padding:4px var(--space-3);margin-bottom:var(--space-4);font-size:11px;color:var(--color-primary-200);font-weight:600;letter-spacing:0.5px;text-transform:uppercase;}
+.page-header h1{font-size:clamp(30px,4vw,52px);color:#fff;letter-spacing:-1px;line-height:1.1;margin-bottom:var(--space-3);}
+.page-header .subtitle{font-size:16px;color:var(--color-neutral-400);max-width:440px;line-height:1.7;}
+
+/* ── LAYOUT ──────────────────────────────────────────────── */
+.container{max-width:1080px;margin:0 auto;}
+.main-content{padding:var(--space-12) var(--space-8);}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-8);align-items:start;}
+
+/* ── SECTION LABEL ───────────────────────────────────────── */
+.section-label{font-family:var(--font-display);font-size:12px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--primary);margin-bottom:var(--space-4);}
+
+/* ── INCLUDED CARDS ──────────────────────────────────────── */
+.included-col{display:flex;flex-direction:column;gap:var(--space-4);}
+.card{background:#fff;border:var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-8);box-shadow:var(--shadow-card);}
+.card-head{display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-6);}
+.card-icon{width:40px;height:40px;border-radius:var(--radius-md);background:var(--color-primary-50);border:var(--border-subtle);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;}
+.card-icon .cb-icon{font-size:20px;}
+.card h3{font-size:18px;letter-spacing:-0.3px;}
+.card-note{font-size:13px;color:var(--color-neutral-600);margin-bottom:var(--space-4);line-height:1.65;}
+.category-list{display:flex;flex-direction:column;gap:var(--space-2);}
+.category-item{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);background:var(--color-neutral-50);border:var(--border-subtle);border-radius:var(--radius-md);font-size:13px;color:var(--color-neutral-800);}
+.cat-dot{width:8px;height:8px;border-radius:50%;background:var(--color-primary-300);flex-shrink:0;}
+
+.receive-list{list-style:none;display:flex;flex-direction:column;gap:var(--space-3);}
+.receive-list li{display:flex;align-items:flex-start;gap:var(--space-3);font-size:14px;color:var(--color-neutral-800);line-height:1.55;}
+.r-check{width:20px;height:20px;border-radius:50%;background:var(--color-success-bg);border:1px solid #B7E4C7;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.r-check-icon{font-size:12px;color:var(--color-success);font-weight:800;}
+
+/* ── EXAMPLE OUTPUT ──────────────────────────────────────── */
+.example-col{position:sticky;top:80px;}
+.example-card{background:#fff;border:var(--border-default);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 4px 24px rgba(47,39,206,.12);}
+.example-header{background:var(--color-primary-900);padding:var(--space-8);text-align:center;}
+.example-badge{display:inline-block;background:rgba(184,180,255,0.15);border:1px solid rgba(184,180,255,0.25);border-radius:var(--radius-pill);padding:4px 14px;font-size:11px;color:var(--color-primary-200);font-weight:600;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:var(--space-4);}
+.score-ring{width:88px;height:88px;border-radius:50%;border:4px solid #B85C00;display:flex;align-items:center;justify-content:center;flex-direction:column;margin:0 auto var(--space-4);background:rgba(184,92,0,0.12);}
+.score-num{font-family:var(--font-display);font-size:30px;font-weight:800;color:#fff;line-height:1;}
+.score-label{font-size:10px;color:rgba(255,255,255,0.5);font-weight:600;letter-spacing:0.5px;}
+.example-header h4{font-family:var(--font-display);font-size:14px;font-weight:700;color:#fff;margin-bottom:4px;}
+.example-header .url-tag{font-size:12px;color:var(--color-neutral-400);}
+
+.example-body{padding:var(--space-6);}
+.ex-section{margin-bottom:var(--space-6);}
+.ex-section:last-child{margin-bottom:0;}
+.ex-label{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:var(--space-3);}
+.ex-label.green{color:var(--color-success);}
+.ex-label.orange{color:var(--color-warning);}
+.ex-label.dark{color:var(--color-neutral-600);}
+
+.strength-item{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--color-success-bg);border:1px solid #B7E4C7;border-radius:var(--radius-md);font-size:13px;color:var(--color-neutral-800);margin-bottom:var(--space-2);}
+.strength-item .s-dot{width:6px;height:6px;border-radius:50%;background:var(--color-success);flex-shrink:0;}
+
+.issue-item{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--color-warning-bg);border:1px solid #F5C98A;border-radius:var(--radius-md);font-size:13px;color:var(--color-neutral-800);margin-bottom:var(--space-2);}
+.issue-item .i-dot{width:6px;height:6px;border-radius:50%;background:var(--color-warning);flex-shrink:0;}
+
+.quick-win-card{background:var(--color-primary-900);border-radius:var(--radius-md);padding:var(--space-4) var(--space-5);display:flex;align-items:flex-start;gap:var(--space-3);}
+.qw-icon{width:32px;height:32px;border-radius:var(--radius-md);background:rgba(252,47,0,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.qw-icon .cb-icon{font-size:18px;color:var(--color-accent-200);}
+.qw-content{}
+.qw-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:4px;}
+.qw-text{font-size:13px;color:#fff;font-weight:600;line-height:1.5;}
+
+.example-disclaimer{padding:var(--space-3) var(--space-6);background:var(--color-neutral-50);border-top:var(--border-subtle);font-size:11px;color:var(--color-neutral-400);text-align:center;line-height:1.6;}
+
+/* ── BOTTOM CTA ──────────────────────────────────────────── */
+.bottom-cta{background:var(--color-primary-900);padding:var(--space-12) var(--space-8);text-align:center;border-top:1px solid rgba(47,39,206,0.3);}
+.bottom-cta h2{font-size:clamp(24px,3vw,40px);color:#fff;letter-spacing:-0.8px;margin-bottom:var(--space-3);}
+.bottom-cta p{font-size:15px;color:var(--color-neutral-400);max-width:400px;margin:0 auto var(--space-8);line-height:1.7;}
+.cta-btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);width:100%;max-width:520px;padding:18px var(--space-8);background:var(--color-neutral-900);color:#fff;border:none;border-radius:var(--radius-lg);font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:-0.3px;transition:all .2s;text-decoration:none;}
+.cta-btn:hover{background:#000;transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,0.4);}
+.cta-btn .cb-icon{font-size:22px;}
+.cta-note{margin-top:var(--space-3);font-size:12px;color:var(--color-neutral-400);}
+
+/* ── FOOTER ──────────────────────────────────────────────── */
+.footer{background:var(--color-neutral-900);color:var(--color-neutral-600);padding:var(--space-8);text-align:center;font-size:12px;border-top:1px solid rgba(47,39,206,.2);}
+.footer strong{color:var(--color-primary-200);}
+
+/* Material icons */
+.cb-icon{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:24px;line-height:1;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;user-select:none;}
+
+/* ── RESPONSIVE ──────────────────────────────────────────── */
+@media(max-width:800px){
+  .nav{padding:0 var(--space-4);}
+  .page-header,.main-content,.bottom-cta{padding-left:var(--space-4);padding-right:var(--space-4);}
+  .two-col{grid-template-columns:1fr;}
+  .example-col{position:static;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ─────────────────────────────────────────────────── -->
+<nav class="nav">
+  <a href="index.html" class="nav-logo">Creative<span class="accent-dot">Bridge</span><span class="divider">/</span><span class="sub">Website UX Audit</span></a>
+  <a href="index.html#pricing" class="nav-cta">See All Plans</a>
+</nav>
+
+<!-- ── PAGE HEADER ─────────────────────────────────────────── -->
+<header class="page-header">
+  <div class="container">
+    <a href="index.html#pricing" class="back-link">
+      <span class="cb-icon">arrow_back</span>
+      Back to pricing
+    </a>
+    <div class="page-eyebrow">Free Plan</div>
+    <h1>Free Audit</h1>
+    <p class="subtitle">Lead generation + trust building</p>
+  </div>
+</header>
+
+<!-- ── MAIN CONTENT ────────────────────────────────────────── -->
+<main class="main-content">
+  <div class="container">
+    <div class="two-col">
+
+      <!-- LEFT: What's Included -->
+      <div class="included-col">
+        <div class="section-label">What's Included</div>
+
+        <!-- Card 1: Homepage score only -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon"><span class="cb-icon">home</span></div>
+            <h3>Homepage score only</h3>
+          </div>
+          <p class="card-note">We analyse your homepage across these UX categories:</p>
+          <div class="category-list">
+            <div class="category-item"><div class="cat-dot"></div>Visual hierarchy</div>
+            <div class="category-item"><div class="cat-dot"></div>CTA clarity</div>
+            <div class="category-item"><div class="cat-dot"></div>Navigation</div>
+            <div class="category-item"><div class="cat-dot"></div>Readability</div>
+            <div class="category-item"><div class="cat-dot"></div>Trust indicators</div>
+          </div>
+        </div>
+
+        <!-- Card 2: What You'll Receive -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon"><span class="cb-icon">mail</span></div>
+            <h3>What You'll Receive</h3>
+          </div>
+          <ul class="receive-list">
+            <li>
+              <div class="r-check"><span class="r-check-icon">✓</span></div>
+              Short summary with overall UX score
+            </li>
+            <li>
+              <div class="r-check"><span class="r-check-icon">✓</span></div>
+              Small actionable recommendations
+            </li>
+            <li>
+              <div class="r-check"><span class="r-check-icon">✓</span></div>
+              Limited categories analysis
+            </li>
+            <li>
+              <div class="r-check"><span class="r-check-icon">✓</span></div>
+              Top 3 UX issues identified
+            </li>
+            <li>
+              <div class="r-check"><span class="r-check-icon">✓</span></div>
+              Top 2 quick wins
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- RIGHT: Example Output -->
+      <div class="example-col">
+        <div class="section-label">Example Output</div>
+        <div class="example-card">
+
+          <!-- Score header -->
+          <div class="example-header">
+            <div class="example-badge">Free Audit Report</div>
+            <div class="score-ring">
+              <span class="score-num">68</span>
+              <span class="score-label">/ 100</span>
+            </div>
+            <h4>Needs Improvement</h4>
+            <div class="url-tag">yourwebsite.com</div>
+          </div>
+
+          <!-- Report sections -->
+          <div class="example-body">
+
+            <!-- Strengths -->
+            <div class="ex-section">
+              <div class="ex-label green">Strengths</div>
+              <div class="strength-item"><div class="s-dot"></div>Clear branding</div>
+              <div class="strength-item"><div class="s-dot"></div>Strong visual consistency</div>
+            </div>
+
+            <!-- Key Issues -->
+            <div class="ex-section">
+              <div class="ex-label orange">Key Issues</div>
+              <div class="issue-item"><div class="i-dot"></div>Weak CTA visibility</div>
+              <div class="issue-item"><div class="i-dot"></div>Dense content blocks</div>
+              <div class="issue-item"><div class="i-dot"></div>Low contrast on mobile</div>
+            </div>
+
+            <!-- Top Quick Win -->
+            <div class="ex-section">
+              <div class="ex-label dark">Top Quick Win</div>
+              <div class="quick-win-card">
+                <div class="qw-icon"><span class="cb-icon">bolt</span></div>
+                <div class="qw-content">
+                  <div class="qw-label">Highest Impact</div>
+                  <div class="qw-text">Improve primary CTA placement above the fold.</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <div class="example-disclaimer">
+            This is a sample output. Your report is generated by AI across your actual homepage.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<!-- ── BOTTOM CTA ───────────────────────────────────────────── -->
+<section class="bottom-cta">
+  <div class="container">
+    <h2>Ready to see your score?</h2>
+    <p>No credit card. No signup. Your report lands in your inbox in under two minutes.</p>
+    <a href="index.html#pricing" class="cta-btn" onclick="if(window.opener||window.parent!==window){return;}window.location='index.html';setTimeout(()=>{const el=document.getElementById('pricing');if(el)el.scrollIntoView({behavior:'smooth'});},200);">
+      <span class="cb-icon">search</span>
+      Get Your Free Audit
+    </a>
+    <p class="cta-note">R0 · no card required · delivered by email</p>
+  </div>
+</section>
+
+<!-- ── FOOTER ───────────────────────────────────────────────── -->
+<footer class="footer">
+  <strong>CreativeBridge</strong> · AI-powered UX audits · <a href="mailto:hello@creativebridge.co.za" style="color:var(--color-primary-200);text-decoration:none;">hello@creativebridge.co.za</a>
+</footer>
+
+<script>
+  // CTA button: navigate to index.html and open the free audit modal
+  document.querySelector('.cta-btn').addEventListener('click', function(e) {
+    e.preventDefault();
+    // Pass a flag via sessionStorage so index.html can open the modal
+    sessionStorage.setItem('openFreeAudit', '1');
+    window.location.href = 'index.html';
+  });
+</script>
+</body>
+</html>
