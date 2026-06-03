@@ -104,18 +104,30 @@ button{cursor:pointer;font-family:var(--font-body);}
 .ex-label.orange{color:var(--color-warning);}
 .ex-label.dark{color:var(--color-neutral-600);}
 
-.strength-item{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--color-success-bg);border:1px solid #B7E4C7;border-radius:var(--radius-md);font-size:13px;color:var(--color-neutral-800);margin-bottom:var(--space-2);}
-.strength-item .s-dot{width:6px;height:6px;border-radius:50%;background:var(--color-success);flex-shrink:0;}
+/* Example output — category table */
+.ex-cat-table{width:100%;border-collapse:collapse;margin-bottom:0;}
+.ex-cat-table th{text-align:left;padding:0 6px 8px 0;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--color-neutral-400);border-bottom:2px solid var(--color-neutral-100);}
+.ex-cat-table th:last-child{padding-right:0;padding-left:6px;}
+.ex-cat-table td{padding:9px 6px 9px 0;font-size:12px;border-bottom:1px solid var(--color-neutral-50);vertical-align:top;}
+.ex-cat-table td:last-child{padding-left:6px;padding-right:0;color:var(--color-neutral-600);line-height:1.4;}
+.ex-score{font-size:14px;font-weight:800;white-space:nowrap;}
+.ex-score sub{font-size:9px;font-weight:400;color:var(--color-neutral-400);}
 
-.issue-item{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--color-warning-bg);border:1px solid #F5C98A;border-radius:var(--radius-md);font-size:13px;color:var(--color-neutral-800);margin-bottom:var(--space-2);}
-.issue-item .i-dot{width:6px;height:6px;border-radius:50%;background:var(--color-warning);flex-shrink:0;}
+/* Example output — issue card */
+.ex-issue-card{background:var(--color-warning-bg);border:1px solid #F5C98A;border-radius:var(--radius-md);padding:10px 12px;margin-bottom:8px;}
+.ex-issue-title{font-size:12px;font-weight:700;color:var(--color-neutral-900);margin-right:6px;}
+.ex-sev{display:inline-block;background:var(--color-danger);color:#fff;border-radius:100px;padding:1px 7px;font-size:9px;font-weight:700;}
+.ex-sev.med{background:var(--color-warning);}
+.ex-issue-desc{font-size:11px;color:var(--color-neutral-600);margin-top:4px;line-height:1.4;}
 
-.quick-win-card{background:var(--color-primary-50);border:var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-6) var(--space-6);display:flex;align-items:flex-start;gap:var(--space-4);}
-.qw-icon{width:36px;height:36px;border-radius:var(--radius-md);background:var(--color-primary-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.qw-icon .cb-icon{font-size:20px;color:var(--primary);}
-.qw-content{}
-.qw-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--color-neutral-400);margin-bottom:4px;}
-.qw-text{font-size:14px;color:var(--color-neutral-900);font-weight:600;line-height:1.5;}
+/* Example output — quick win row */
+.ex-win-row{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--color-neutral-100);font-size:12px;color:var(--color-neutral-800);}
+.ex-win-icon{color:var(--color-success);font-weight:800;flex-shrink:0;font-size:14px;}
+
+/* Example output — recommendation */
+.ex-rec{background:var(--color-primary-50);border-left:3px solid var(--primary);border-radius:4px;padding:10px 12px;margin-top:4px;}
+.ex-rec-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--primary);margin-bottom:4px;}
+.ex-rec-text{font-size:12px;color:var(--color-neutral-800);line-height:1.5;}
 
 .example-disclaimer{padding:var(--space-3) var(--space-6);background:var(--color-neutral-50);border-top:var(--border-subtle);font-size:11px;color:var(--color-neutral-400);text-align:center;line-height:1.6;}
 
@@ -181,7 +193,7 @@ button{cursor:pointer;font-family:var(--font-body);}
               <p class="card-subtitle">One URL · your homepage only</p>
             </div>
           </div>
-          <p class="card-note">We analyse your homepage across these UX categories:</p>
+          <p class="card-note">We evaluate your homepage across 5 UX dimensions and surface the <strong>2 most critical</strong> categories in your report:</p>
           <ul class="category-list">
             <li class="category-item"><span class="cb-icon cat-icon">layers</span>Visual hierarchy</li>
             <li class="category-item"><span class="cb-icon cat-icon">ads_click</span>CTA clarity</li>
@@ -189,6 +201,9 @@ button{cursor:pointer;font-family:var(--font-body);}
             <li class="category-item"><span class="cb-icon cat-icon">article</span>Readability</li>
             <li class="category-item"><span class="cb-icon cat-icon">verified</span>Trust indicators</li>
           </ul>
+          <div style="margin-top:var(--space-4);padding:var(--space-3) var(--space-4);background:var(--color-primary-50);border-radius:var(--radius-md);font-size:12px;color:var(--color-neutral-600);line-height:1.6;">
+            🔒 All 10 categories with full scoring and observations are available in the <strong style="color:var(--primary);">Pro Audit</strong>
+          </div>
         </div>
 
         <!-- Card 2: What You'll Receive -->
@@ -200,23 +215,27 @@ button{cursor:pointer;font-family:var(--font-body);}
           <ul class="receive-list">
             <li>
               <span class="cb-icon r-check-icon">check_circle</span>
-              Short summary with overall UX score
+              Overall UX score (0–100) with rating and summary
             </li>
             <li>
               <span class="cb-icon r-check-icon">check_circle</span>
-              Small actionable recommendations
+              2 most critical categories — scored out of 10 with observations
             </li>
             <li>
               <span class="cb-icon r-check-icon">check_circle</span>
-              Limited categories analysis
+              3 main UX issues with severity (High / Medium) and business impact
             </li>
             <li>
               <span class="cb-icon r-check-icon">check_circle</span>
-              Top 3 UX issues identified
+              2 quick wins with effort and impact ratings
             </li>
             <li>
               <span class="cb-icon r-check-icon">check_circle</span>
-              Top 2 quick wins
+              1 targeted recommendation to act on immediately
+            </li>
+            <li>
+              <span class="cb-icon r-check-icon">check_circle</span>
+              Email report + shareable online report link
             </li>
           </ul>
         </div>
@@ -241,36 +260,73 @@ button{cursor:pointer;font-family:var(--font-body);}
           <!-- Report sections -->
           <div class="example-body">
 
-            <!-- Strengths -->
+            <!-- Category Snapshot -->
             <div class="ex-section">
-              <div class="ex-label green">Strengths</div>
-              <div class="strength-item"><div class="s-dot"></div>Clear branding</div>
-              <div class="strength-item"><div class="s-dot"></div>Strong visual consistency</div>
+              <div class="ex-label" style="color:var(--primary);">Category Snapshot</div>
+              <table class="ex-cat-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Score</th>
+                    <th>Summary</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="font-weight:600;color:var(--color-neutral-900);">CTA Clarity</td>
+                    <td><span class="ex-score" style="color:var(--color-danger);">4<sub>/10</sub></span></td>
+                    <td>Primary action is below the fold with low contrast.</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:600;color:var(--color-neutral-900);">Trust Indicators</td>
+                    <td><span class="ex-score" style="color:var(--color-warning);">5<sub>/10</sub></span></td>
+                    <td>No social proof or security signals near sign-up.</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
-            <!-- Key Issues -->
+            <!-- Main UX Issues -->
             <div class="ex-section">
-              <div class="ex-label orange">Key Issues</div>
-              <div class="issue-item"><div class="i-dot"></div>Weak CTA visibility</div>
-              <div class="issue-item"><div class="i-dot"></div>Dense content blocks</div>
-              <div class="issue-item"><div class="i-dot"></div>Low contrast on mobile</div>
+              <div class="ex-label orange">Main UX Issues</div>
+              <div class="ex-issue-card">
+                <span class="ex-issue-title">CTA buried below the fold</span><span class="ex-sev">High</span>
+                <div class="ex-issue-desc">Users miss the primary action on mobile — reducing conversion.</div>
+              </div>
+              <div class="ex-issue-card">
+                <span class="ex-issue-title">No social proof visible</span><span class="ex-sev">High</span>
+                <div class="ex-issue-desc">Trust signals absent from hero area, lowering sign-up confidence.</div>
+              </div>
+              <div class="ex-issue-card">
+                <span class="ex-issue-title">Dense content blocks</span><span class="ex-sev med">Medium</span>
+                <div class="ex-issue-desc">Long paragraphs reduce scannability for time-poor visitors.</div>
+              </div>
             </div>
 
-            <!-- Top Quick Win -->
+            <!-- Quick Wins -->
             <div class="ex-section">
-              <div class="ex-label dark">Top Quick Win</div>
-              <div class="quick-win-card">
-                <div class="qw-icon"><span class="cb-icon">bolt</span></div>
-                <div class="qw-content">
-                  <div class="qw-label">Highest Impact</div>
-                  <div class="qw-text">Improve primary CTA placement above the fold.</div>
-                </div>
+              <div class="ex-label green">Quick Wins</div>
+              <div class="ex-win-row">
+                <span class="ex-win-icon">✓</span>
+                <span>Move primary CTA above the fold. <span style="color:var(--color-neutral-400);font-size:11px;">· Effort: Low · Impact: High</span></span>
+              </div>
+              <div class="ex-win-row" style="border-bottom:none;">
+                <span class="ex-win-icon">✓</span>
+                <span>Add 2–3 customer logos near sign-up form. <span style="color:var(--color-neutral-400);font-size:11px;">· Effort: Low · Impact: Medium</span></span>
+              </div>
+            </div>
+
+            <!-- Recommendation -->
+            <div class="ex-section">
+              <div class="ex-rec">
+                <div class="ex-rec-label">Recommendation</div>
+                <div class="ex-rec-text">Prioritise CTA visibility and trust signals — both can be addressed in a single sprint with measurable impact on conversion.</div>
               </div>
             </div>
 
           </div>
           <div class="example-disclaimer">
-            This is a sample output. Your report is generated by AI across your actual homepage.
+            Sample output — your report is generated by AI from your actual homepage.
           </div>
         </div>
       </div>
