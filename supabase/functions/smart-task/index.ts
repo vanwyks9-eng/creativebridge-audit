@@ -400,9 +400,9 @@ async function sendEmail(to: string, subject: string, html: string) {
 }
 
 // ── AUDIT PROCESSOR ────────────────────────────────────────
-// No internal try/catch — errors propagate to the handler so the real
-// error message surfaces in the frontend modal instead of being swallowed.
-async function processAudit(form: Record<string, string>, submissionId: string) {
+// Returns the report object so the handler can pass it back in the response.
+// Errors propagate to the handler — real error messages surface in the modal.
+async function processAudit(form: Record<string, string>, submissionId: string): Promise<Record<string, any>> {
   try { await supabase.from("audit_submissions").update({ status: "running" }).eq("id", submissionId); } catch (_) {}
   console.log("processAudit started — id:", submissionId);
 
@@ -474,6 +474,7 @@ async function processAudit(form: Record<string, string>, submissionId: string) 
   }
 
   console.log("Audit complete:", submissionId);
+  return report;
 }
 
 // ── REQUEST HANDLER ────────────────────────────────────────
@@ -526,12 +527,17 @@ Deno.serve(async (req) => {
     if (insertError) console.error("DB insert error:", JSON.stringify(insertError));
 
     // processAudit throws on any failure — errors surface as real error modals.
-    await processAudit(form, submissionId);
+    const report = await processAudit(form, submissionId);
 
+    // Return the full report in the response so the frontend can cache it in
+    // sessionStorage. report.html reads from sessionStorage first, bypassing
+    // the Supabase anon query entirely for the immediate click-through.
     return new Response(JSON.stringify({
       success: true,
       message: "Your audit is complete — check your inbox!",
       submissionId,
+      report,
+      tier,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (error) {

@@ -196,6 +196,17 @@ async function loadReport() {
   const id = params.get('id');
   if (!id) { showError(); return; }
 
+  // Check sessionStorage first — populated by index.html on successful audit.
+  // This bypasses the Supabase anon query entirely for immediate click-throughs.
+  try {
+    const cached = sessionStorage.getItem(`cb_report_${id}`);
+    if (cached) {
+      const { result, tier } = JSON.parse(cached);
+      if (result) { renderReport(result, tier); return; }
+    }
+  } catch(_) {}
+
+  // Fallback: fetch from Supabase (for email link click-throughs on other devices)
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/audit_submissions?id=eq.${id}&select=result,status,tier,created_at`, {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
@@ -204,13 +215,10 @@ async function loadReport() {
     if (!rows.length) { showError('not-found'); return; }
     const row = rows[0];
     if (!row.result) {
-      // Row exists but result is null — show status-specific message
       showError(row.status === 'processing' || row.status === 'running' ? 'processing' : 'error');
       return;
     }
-    const r    = row.result;
-    const tier = row.tier;
-    renderReport(r, tier);
+    renderReport(row.result, row.tier);
   } catch(e) {
     showError();
   }

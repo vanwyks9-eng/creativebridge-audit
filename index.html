@@ -656,6 +656,16 @@ async function submitForm() {
     const data = await response.json();
     clearInterval(stepInterval);
     if (data.success) {
+      // Cache the report in sessionStorage so report.html can read it
+      // instantly without relying on the Supabase anon query.
+      if (data.report && data.submissionId) {
+        try {
+          sessionStorage.setItem(
+            `cb_report_${data.submissionId}`,
+            JSON.stringify({ result: data.report, tier: data.tier || currentTier })
+          );
+        } catch(e) { /* sessionStorage full — ignore, Supabase fallback will handle it */ }
+      }
       renderEmailSent();
     } else {
       renderError(data.error || 'Something went wrong. Please try again.');
