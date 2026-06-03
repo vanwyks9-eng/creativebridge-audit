@@ -196,10 +196,10 @@ async function loadReport() {
   const id = params.get('id');
   if (!id) { showError(); return; }
 
-  // Check sessionStorage first — populated by index.html on successful audit.
-  // This bypasses the Supabase anon query entirely for immediate click-throughs.
+  // Check localStorage first — populated by index.html on successful audit.
+  // Works across tabs and for email link clicks in the same browser.
   try {
-    const cached = sessionStorage.getItem(`cb_report_${id}`);
+    const cached = localStorage.getItem(`cb_report_${id}`);
     if (cached) {
       const { result, tier } = JSON.parse(cached);
       if (result) { renderReport(result, tier); return; }

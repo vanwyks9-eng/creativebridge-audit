@@ -656,17 +656,17 @@ async function submitForm() {
     const data = await response.json();
     clearInterval(stepInterval);
     if (data.success) {
-      // Cache the report in sessionStorage so report.html can read it
-      // instantly without relying on the Supabase anon query.
+      // Cache the report in localStorage (cross-tab) so report.html can read
+      // it instantly — works whether the user clicks from the modal or email.
       if (data.report && data.submissionId) {
         try {
-          sessionStorage.setItem(
+          localStorage.setItem(
             `cb_report_${data.submissionId}`,
             JSON.stringify({ result: data.report, tier: data.tier || currentTier })
           );
-        } catch(e) { /* sessionStorage full — ignore, Supabase fallback will handle it */ }
+        } catch(e) { /* storage full — ignore, Supabase fallback will handle it */ }
       }
-      renderEmailSent();
+      renderEmailSent(data.submissionId);
     } else {
       renderError(data.error || 'Something went wrong. Please try again.');
     }
@@ -737,7 +737,7 @@ function renderResult(r) {
 }
 
 // ── EMAIL SENT SCREEN ─────────────────────────────────────
-function renderEmailSent() {
+function renderEmailSent(submissionId) {
   const catLabel = WEBSITE_CATEGORIES.find(c => c.value === formSnapshot.websiteCategory)?.label?.split(' —')[0] || 'Website';
   document.getElementById('modal-content').classList.remove('modal--wide');
   document.getElementById('modal-content').innerHTML = `
@@ -765,8 +765,9 @@ function renderEmailSent() {
         </svg>
         <span style="font-size:13px;color:#3D3C55;">Your full ${catLabel} report has been emailed to <strong style="color:#2F27CE;">${formSnapshot.email}</strong></span>
       </div>
-      <p style="font-size:13px;color:#6B6A80;margin:0 0 24px;line-height:1.6;">Check your inbox — your report should be there now. Don't forget to check your spam folder.</p>
-      <button onclick="closeModal()" style="width:100%;background:#fff;border:2px solid #2F27CE;border-radius:10px;padding:12px 20px;cursor:pointer;font-family:inherit;color:#2F27CE;font-size:14px;font-weight:600;" onmouseover="this.style.background='#2F27CE';this.style.color='#fff';" onmouseout="this.style.background='#fff';this.style.color='#2F27CE';">Close</button>
+      <p style="font-size:13px;color:#6B6A80;margin:0 0 20px;line-height:1.6;">Check your inbox — your report should be there now. Don't forget to check your spam folder.</p>
+      ${submissionId ? `<a href="report.html?id=${submissionId}" style="display:block;width:100%;box-sizing:border-box;background:#2F27CE;color:#fff;border:none;border-radius:10px;padding:13px 20px;font-family:inherit;font-size:14px;font-weight:700;text-align:center;text-decoration:none;margin-bottom:10px;">View Your Report →</a>` : ''}
+      <button onclick="closeModal()" style="width:100%;background:#fff;border:2px solid #E8E7F5;border-radius:10px;padding:12px 20px;cursor:pointer;font-family:inherit;color:#6B6A80;font-size:14px;font-weight:600;">Close</button>
     </div>`;
 }
 
