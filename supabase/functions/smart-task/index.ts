@@ -24,7 +24,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
 const RESEND_KEY    = Deno.env.get("RESEND_API_KEY") ?? "";
 const SUPABASE_URL  = Deno.env.get("SUPABASE_URL") ?? "";
-const SUPABASE_KEY  = Deno.env.get("SB_SERVICE_ROLE_KEY") ?? "";
+// SUPABASE_SERVICE_ROLE_KEY is auto-injected by Supabase Edge Runtime.
+// SB_SERVICE_ROLE_KEY is the legacy custom secret name — kept as fallback.
+const SUPABASE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+                   ?? Deno.env.get("SB_SERVICE_ROLE_KEY")
+                   ?? "";
 const REPORT_BASE   = "https://audit.creativebridge.co.za/report.html";
 const TEST_EMAILS   = ["stephan@creativebridge.co.za"];
 
