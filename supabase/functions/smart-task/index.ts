@@ -270,7 +270,7 @@ Concerns: ${form.concerns || "None"}
 ${rules}
 
 Return this exact JSON (keep strings concise — max 2 sentences each):
-{"reportType":"Free UX Audit","detectedCategory":"<E-commerce|SaaS|Service|Corporate|Content>","categoryConfidence":"<High|Medium|Low>","brand":"Creative Bridge","websiteUrl":"${form.websiteUrl}","companyName":"${form.companyName}","auditDate":"${date}","generatedFor":"${form.email}","overallScore":{"score":0,"maxScore":100,"rating":"","summary":""},"topIssue":{"title":"","severity":"High","description":""},"topQuickWin":{"recommendation":"","effort":"Low","impact":"High"},"upgradePrompt":{"headline":"Unlock your full UX report","description":"Your free audit shows your score and one key finding. The Pro Audit unlocks all 10 category scores, top 5 issues, 5 quick wins, accessibility review, and a phased improvement roadmap.","cta":"Get the Full Report — R499"}}`;
+{"reportType":"Free UX Audit","detectedCategory":"<E-commerce|SaaS|Service|Corporate|Content>","categoryConfidence":"<High|Medium|Low>","brand":"Creative Bridge","websiteUrl":"${form.websiteUrl}","companyName":"${form.companyName}","auditDate":"${date}","generatedFor":"${form.email}","overallScore":{"score":0,"maxScore":100,"rating":"","summary":""},"criticalCategories":[{"category":"","score":0,"maxScore":10,"keyObservations":""},{"category":"","score":0,"maxScore":10,"keyObservations":""}],"topIssues":[{"title":"","severity":"High","description":"","impact":""},{"title":"","severity":"High","description":"","impact":""},{"title":"","severity":"Medium","description":"","impact":""}],"topQuickWins":[{"recommendation":"","effort":"Low","impact":"High"},{"recommendation":"","effort":"Low","impact":"High"}],"recommendation":"","upgradePrompt":{"headline":"Unlock your full UX report","description":"Your free audit covers your top 2 critical categories, 3 key issues and 2 quick wins. Pro unlocks all 10 categories, top 5 issues, 5 quick wins, conversion analysis, and a phased roadmap.","cta":"Get the Full Report — R499"}}`;
 }
 
 // ── EMAIL HELPERS ──────────────────────────────────────────
@@ -282,39 +282,133 @@ const catBadgeColor: Record<string, string> = {
 
 // ── SLIM SUMMARY EMAIL ─────────────────────────────────────
 function buildSummaryEmail(r: Record<string, any>, reportUrl: string): string {
-  const tier       = r.reportType?.includes("Pro") ? "Pro" : "Free";
-  const cat        = r.detectedCategory || "Website";
-  const badgeColor = catBadgeColor[cat] || "#2F27CE";
-  const pages      = Array.isArray(r.pages) ? r.pages : [];
-  const score      = tier === "Pro"
+  const tier        = r.reportType?.includes("Pro") ? "Pro" : "Free";
+  const cat         = r.detectedCategory || "Website";
+  const badgeColor  = catBadgeColor[cat] || "#2F27CE";
+  const pages       = Array.isArray(r.pages) ? r.pages : [];
+  const score       = tier === "Pro"
     ? Math.round(pages.reduce((s: number, p: any) => s + (p.uxScore || 0), 0) / Math.max(pages.length, 1))
     : (r.overallScore?.score || 0);
-  const rating     = tier === "Pro" ? scoreRating(score) : (r.overallScore?.rating || "");
-  const summary    = tier === "Pro" ? (r.executiveSummary || "") : (r.overallScore?.summary || "");
+  const rating      = tier === "Pro" ? scoreRating(score) : (r.overallScore?.rating || "");
+  const summary     = tier === "Pro" ? (r.executiveSummary || "") : (r.overallScore?.summary || "");
   const isMultiPage = pages.length > 1;
   const firstPage   = pages[0] || {};
 
+  // ── Email component helpers ────────────────────────────────
+  const sectionHead = (label: string, color: string) =>
+    `<div style="font-family:'Merriweather Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${color};margin:28px 0 12px;">${label}</div>`;
+
+  // Category snapshot row
+  const catPct = (s: number, m: number) => (s / m) * 100;
+  const catColor = (s: number, m: number) => catPct(s,m) >= 70 ? "#1D7A45" : catPct(s,m) >= 50 ? "#B85C00" : "#C22400";
+  const catRow = (cat: string, score: number, max: number, obs: string) =>
+    `<tr>
+      <td style="padding:10px 8px 10px 0;font-size:13px;color:#232225;font-weight:600;border-bottom:1px solid #F0EEFF;vertical-align:top;">${cat}</td>
+      <td style="padding:10px 8px;font-size:15px;font-weight:800;color:${catColor(score,max)};white-space:nowrap;border-bottom:1px solid #F0EEFF;vertical-align:top;">${score}<span style="font-size:10px;font-weight:400;color:#9998B0;">/${max}</span></td>
+      <td style="padding:10px 0 10px 8px;font-size:12px;color:#6B6A80;line-height:1.5;border-bottom:1px solid #F0EEFF;vertical-align:top;">${obs}</td>
+    </tr>`;
+
+  // Strength card (green)
+  const strengthCard = (text: string) =>
+    `<div style="background:#EAFAF1;border:1px solid #B7E4C7;border-radius:8px;padding:12px 14px;margin-bottom:8px;">
+      <span style="font-size:13px;font-weight:700;color:#1D7A45;margin-right:6px;">✓</span><span style="font-size:13px;color:#3D3C55;line-height:1.55;">${text}</span>
+    </div>`;
+
+  // Issue card (amber) — title + severity badge + description + impact
+  const issueCard = (title: string, sev: string, desc: string, impact: string) => {
+    const sc = sev === "High" ? "#C22400" : sev === "Medium" ? "#B85C00" : "#1D7A45";
+    return `<div style="background:#FFF8E1;border:1px solid #F5C98A;border-radius:8px;padding:12px 14px;margin-bottom:8px;">
+      <div style="margin-bottom:${desc ? "6px" : "0"};">
+        <span style="font-size:13px;font-weight:700;color:#232225;">${title}</span>
+        <span style="background:${sc};color:#fff;border-radius:100px;padding:2px 8px;font-size:10px;font-weight:700;margin-left:8px;">${sev}</span>
+      </div>
+      ${desc ? `<div style="font-size:12px;color:#3D3C55;line-height:1.55;${impact ? "margin-bottom:5px;" : ""}">${desc}</div>` : ""}
+      ${impact ? `<div style="font-size:11px;color:#6B6A80;font-style:italic;">Impact: ${impact}</div>` : ""}
+    </div>`;
+  };
+
+  // Quick win row
+  const winRow = (text: string) =>
+    `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;">
+      <span style="color:#1D7A45;font-weight:700;flex-shrink:0;font-size:16px;">✓</span>
+      <span style="font-size:13px;color:#3D3C55;line-height:1.5;">${text}</span>
+    </div>`;
+
+  // ── Build sections ─────────────────────────────────────────
+
+  // Category snapshot
+  const catSnapshotRows = tier === "Pro"
+    ? ((firstPage.categoryScores || []) as any[]).slice(0, 3)
+        .map((c: any) => catRow(c.category||"", c.score||0, c.maxScore||10, c.keyObservations||"")).join("")
+    // Free: criticalCategories[] (new) or empty
+    : ((r.criticalCategories || []) as any[]).slice(0, 2)
+        .map((c: any) => catRow(c.category||"", c.score||0, c.maxScore||10, c.keyObservations||"")).join("");
+
+  const catSnapshotLockNote = tier === "Free"
+    ? `<tr><td colspan="3" style="padding:10px 0 0;font-size:11px;color:#9998B0;font-style:italic;">🔒 All 10 categories unlocked in the Pro report</td></tr>`
+    : (isMultiPage ? `<tr><td colspan="3" style="padding:10px 0 0;font-size:11px;color:#9998B0;">Showing top categories from page 1 — full breakdown in your report</td></tr>` : "");
+
+  const catSnapshotHtml = catSnapshotRows ? `
+    ${sectionHead("Category Snapshot", "#2F27CE")}
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+      <tr style="border-bottom:2px solid #DDDBFF;">
+        <th style="text-align:left;padding:0 8px 8px 0;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9998B0;">Category</th>
+        <th style="text-align:left;padding:0 8px 8px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9998B0;">Score</th>
+        <th style="text-align:left;padding:0 0 8px 8px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9998B0;">Summary</th>
+      </tr>
+      ${catSnapshotRows}
+      ${catSnapshotLockNote}
+    </table>` : "";
+
+  // Strengths (Pro only — strings from firstPage.strengths)
+  const strengthsHtml = tier === "Pro" && (firstPage.strengths || []).length
+    ? `${sectionHead("Key Strengths", "#1D7A45")}
+       ${((firstPage.strengths || []) as string[]).slice(0, 3).map(strengthCard).join("")}`
+    : "";
+
   // Issues
-  const issueRow = (text: string) =>
-    `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#C22400;font-weight:700;flex-shrink:0;font-size:16px;">!</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${text}</span></div>`;
-  const winRow  = (text: string) =>
-    `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #E8E7F5;"><span style="color:#1D7A45;font-weight:700;flex-shrink:0;font-size:16px;">✓</span><span style="font-size:13px;color:#3D3C55;line-height:1.5;">${text}</span></div>`;
+  const issuesHtml = (() => {
+    let cards = "";
+    if (tier === "Pro") {
+      cards = ((firstPage.top5Issues || []) as any[]).slice(0, 3).map((i: any) =>
+        issueCard(typeof i === "object" ? i.issue : i, i.severity||"High", "", typeof i === "object" ? i.businessImpact||"" : "")).join("");
+    } else {
+      // New format: topIssues[] | old compat: topIssue{}
+      const issues = Array.isArray(r.topIssues) ? r.topIssues
+        : (r.topIssue ? [r.topIssue] : []);
+      cards = (issues as any[]).slice(0, 3).map((i: any) =>
+        issueCard(i.title||"", i.severity||"High", i.description||"", i.impact||"")).join("");
+    }
+    return cards ? `${sectionHead("Main UX Issues", "#C22400")}${cards}` : "";
+  })();
 
-  const topIssues = tier === "Pro"
-    ? ((firstPage.top5Issues || []) as any[]).slice(0, 3).map((i: any) =>
-        issueRow(typeof i === "object" ? i.issue : i)).join("")
-    // Free tier: single topIssue object
-    : r.topIssue?.title ? issueRow(r.topIssue.title) : "";
+  // Quick wins
+  const winsHtml = (() => {
+    let rows = "";
+    if (tier === "Pro") {
+      rows = ((firstPage.quickWins || []) as string[]).slice(0, 3).map(winRow).join("");
+    } else {
+      // New: topQuickWins[] | old compat: topQuickWin{}
+      const wins = Array.isArray(r.topQuickWins) ? r.topQuickWins
+        : (r.topQuickWin ? [r.topQuickWin] : []);
+      rows = (wins as any[]).slice(0, 2).map((w: any) =>
+        winRow(typeof w === "string" ? w : (w.recommendation || ""))).join("");
+    }
+    return rows ? `${sectionHead("Quick Wins", "#1D7A45")}${rows}` : "";
+  })();
 
-  const topWins = tier === "Pro"
-    ? ((firstPage.quickWins || []) as string[]).slice(0, 3).map((w: string) => winRow(w)).join("")
-    // Free tier: single topQuickWin object
-    : r.topQuickWin?.recommendation ? winRow(r.topQuickWin.recommendation) : "";
+  // Recommendation (Free only)
+  const recHtml = tier === "Free" && r.recommendation
+    ? `<div style="margin-top:20px;background:#EEF2FF;border-left:4px solid #2F27CE;border-radius:4px;padding:12px 16px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#2F27CE;margin-bottom:6px;">Recommendation</div>
+        <div style="font-size:13px;color:#3D3C55;line-height:1.6;">${r.recommendation}</div>
+       </div>`
+    : "";
 
   const multiPageNote = isMultiPage
-    ? `<div style="margin-bottom:20px;background:#F4F3FF;border-radius:8px;padding:12px 16px;font-size:13px;color:#3D3C55;">
+    ? `<div style="margin-bottom:16px;background:#F4F3FF;border-radius:8px;padding:12px 16px;font-size:13px;color:#3D3C55;">
         <strong style="color:#2F27CE;">${pages.length} pages audited:</strong> ${pages.map((p: any) => `<a href="${p.url}" style="color:#2F27CE;">${p.url}</a>`).join(" · ")}
-      </div>`
+       </div>`
     : "";
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -333,7 +427,7 @@ function buildSummaryEmail(r: Record<string, any>, reportUrl: string): string {
   </div>
 </td></tr>
 <tr><td style="background:#fff;padding:40px 40px 0;">
-  <div style="text-align:center;padding-bottom:32px;border-bottom:1px solid #E8E7F5;">
+  <div style="text-align:center;padding-bottom:28px;border-bottom:1px solid #E8E7F5;">
     <div style="width:100px;height:100px;border-radius:50%;border:5px solid ${scoreColor(score)};display:inline-flex;align-items:center;justify-content:center;flex-direction:column;margin-bottom:16px;">
       <div style="font-family:'Merriweather Sans',sans-serif;font-size:32px;font-weight:800;color:#0D0A48;line-height:1;">${score}</div>
       <div style="font-size:11px;color:#9998B0;font-weight:600;">/ 100</div>
@@ -341,31 +435,22 @@ function buildSummaryEmail(r: Record<string, any>, reportUrl: string): string {
     <div style="font-family:'Merriweather Sans',sans-serif;font-size:20px;font-weight:800;color:#0D0A48;margin-bottom:8px;">${rating}</div>
     <div style="font-size:14px;color:#6B6A80;line-height:1.7;max-width:420px;margin:0 auto;">${summary}</div>
   </div>
+  ${multiPageNote ? `<div style="padding-top:20px;">${multiPageNote}</div>` : ""}
+  ${catSnapshotHtml}
+  ${strengthsHtml}
+  ${issuesHtml}
+  ${winsHtml}
+  ${recHtml}
 </td></tr>
-<tr><td style="background:#fff;padding:28px 40px 0;">
-  ${multiPageNote}
-  ${isMultiPage ? `<div style="font-size:12px;color:#9998B0;margin-bottom:14px;">Showing top findings from page 1 — full per-page breakdown in your report.</div>` : ""}
-  <table width="100%" cellpadding="0" cellspacing="0"><tr>
-    <td width="48%" style="vertical-align:top;padding-right:12px;">
-      <div style="font-family:'Merriweather Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#C22400;margin-bottom:12px;">Top Issues</div>
-      ${topIssues}
-    </td>
-    <td width="4%"></td>
-    <td width="48%" style="vertical-align:top;padding-left:12px;">
-      <div style="font-family:'Merriweather Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#1D7A45;margin-bottom:12px;">Quick Wins</div>
-      ${topWins}
-    </td>
-  </tr></table>
-</td></tr>
-<tr><td style="background:#fff;padding:32px 40px 40px;">
+<tr><td style="background:#fff;padding:28px 40px 40px;">
   <div style="text-align:center;background:#F4F3FF;border-radius:12px;padding:28px;">
     <div style="font-family:'Merriweather Sans',sans-serif;font-size:16px;font-weight:800;color:#0D0A48;margin-bottom:8px;">View your full report</div>
-    <div style="font-size:13px;color:#6B6A80;margin-bottom:20px;">${tier === "Pro" ? `Per-page UX scores, category breakdowns, strengths, phased roadmap${isMultiPage ? " across all " + pages.length + " pages" : ""}, and next steps.` : "5 category scores, strengths, issues, and quick wins."} Download as PDF to share with your team.</div>
+    <div style="font-size:13px;color:#6B6A80;margin-bottom:20px;">${tier === "Pro" ? `Per-page UX scores, category breakdowns, strengths, phased roadmap${isMultiPage ? " across all " + pages.length + " pages" : ""}, and next steps.` : "Full category breakdown, all issues, quick wins, and a personalised roadmap."} Download as PDF to share with your team.</div>
     <a href="${reportUrl}" style="display:inline-block;background:#2F27CE;color:#fff;font-family:'Merriweather Sans',sans-serif;font-weight:700;font-size:14px;padding:14px 32px;border-radius:8px;text-decoration:none;">View & Download Report →</a>
   </div>
   ${tier === "Free" ? `<div style="margin-top:20px;text-align:center;background:#FFF0EC;border:1.5px solid #FC2F00;border-radius:8px;padding:16px;">
     <div style="font-size:13px;color:#C22400;font-weight:600;margin-bottom:6px;">Want the full picture?</div>
-    <div style="font-size:12px;color:#6B6A80;margin-bottom:12px;">Pro gives you all 10 categories, conversion friction analysis, and a phased roadmap.</div>
+    <div style="font-size:12px;color:#6B6A80;margin-bottom:12px;">Pro unlocks all 10 categories, 5 issues, 5 quick wins, conversion analysis, and a phased roadmap.</div>
     <a href="https://audit.creativebridge.co.za" style="display:inline-block;background:#FC2F00;color:#fff;font-family:'Merriweather Sans',sans-serif;font-weight:700;font-size:13px;padding:10px 24px;border-radius:6px;text-decoration:none;">Upgrade to Pro →</a>
   </div>` : ""}
 </td></tr>
@@ -447,9 +532,9 @@ async function processAudit(form: Record<string, string>, submissionId: string):
       };
     }
   } else {
-    // Free template is simpler — 1200 tokens, 40 s timeout.
+    // Free template now has 2 categories + 3 issues + 2 wins — 1800 tokens, 50 s timeout.
     console.log("Calling Claude — Free tier...");
-    const text = await callClaude(buildFreePrompt(form), 1200, 40_000);
+    const text = await callClaude(buildFreePrompt(form), 1800, 50_000);
     report = parseJSON(text);
   }
 

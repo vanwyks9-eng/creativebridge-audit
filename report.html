@@ -388,33 +388,66 @@ function renderReport(r, tier) {
       </div>`;
   }
 
-  // ── FREE: legacy flat sections ────────────────────────────────────────────
+  // ── FREE: enriched sections ───────────────────────────────────────────────
+
+  // Critical categories (2 most critical) — new field; empty fallback for old reports
+  const freeCritCats = Array.isArray(r.criticalCategories) ? r.criticalCategories : [];
   const freeCatHtml = `<div class="card">
     <div class="card-title">Category Snapshot</div>
-    <p style="font-size:13px;color:#6B6A80;margin:0 0 16px;">Your free audit includes your overall UX score. Upgrade to Pro to see all 10 category scores.</p>
-    <a href="https://audit.creativebridge.co.za" style="display:inline-block;background:#2F27CE;color:#fff;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;text-decoration:none;">Get Full Report — R499 →</a>
+    ${freeCritCats.length ? `
+      <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+        <thead>
+          <tr style="border-bottom:2px solid #DDDBFF;">
+            <th style="text-align:left;padding:0 8px 10px 0;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9998B0;">Category</th>
+            <th style="text-align:left;padding:0 8px 10px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9998B0;">Score</th>
+            <th style="text-align:left;padding:0 0 10px 8px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9998B0;">Summary</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${freeCritCats.map((c) => {
+            const pct = ((c.score||0)/(c.maxScore||10))*100;
+            const cc = pct>=70?'#1D7A45':pct>=50?'#B85C00':'#C22400';
+            return `<tr style="border-bottom:1px solid #F4F3FF;">
+              <td style="padding:10px 8px 10px 0;font-size:13px;font-weight:600;color:#232225;vertical-align:top;">${c.category||''}</td>
+              <td style="padding:10px 8px;font-size:15px;font-weight:800;color:${cc};white-space:nowrap;vertical-align:top;">${c.score||0}<span style="font-size:10px;font-weight:400;color:#9998B0;">/${c.maxScore||10}</span></td>
+              <td style="padding:10px 0 10px 8px;font-size:13px;color:#6B6A80;line-height:1.55;vertical-align:top;">${c.keyObservations||''}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      <div style="padding:10px 14px;background:#F4F3FF;border-radius:8px;font-size:12px;color:#6B6A80;">🔒 All 10 categories + full breakdown in the <a href="https://audit.creativebridge.co.za" style="color:#2F27CE;font-weight:700;">Pro report</a></div>
+    ` : `<p style="font-size:13px;color:#6B6A80;margin:0 0 16px;">Upgrade to Pro to see all 10 category scores and detailed observations.</p>
+         <a href="https://audit.creativebridge.co.za" style="display:inline-block;background:#2F27CE;color:#fff;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;text-decoration:none;">Get Full Report — R499 →</a>`}
   </div>`;
 
+  // Issues — new: topIssues[], compat: topIssue{}
+  const freeIssuesList = Array.isArray(r.topIssues) ? r.topIssues
+    : (r.topIssue ? [r.topIssue] : []);
   const freeIssuesHtml = `<div class="card">
     <div class="card-title">Main UX Issues</div>
-    ${r.topIssue ? `
+    ${freeIssuesList.length ? freeIssuesList.slice(0,3).map((i) => `
       <div class="issue-card">
-        <div><span class="issue-card-title">${r.topIssue.title||''}</span><span class="sev-badge" style="background:${sevColor(r.topIssue.severity||'High')}">${r.topIssue.severity||'High'}</span></div>
-        <div style="font-size:13px;color:#3D3C55;margin-top:6px;">${r.topIssue.description||''}</div>
-      </div>
-      <div style="margin-top:12px;padding:12px;background:#F4F3FF;border-radius:8px;font-size:12px;color:#6B6A80;">+ 4 more issues in the Pro report</div>
-    ` : '<p style="font-size:13px;color:#6B6A80;">No issues data available.</p>'}
+        <div><span class="issue-card-title">${i.title||''}</span><span class="sev-badge" style="background:${sevColor(i.severity||'High')}">${i.severity||'High'}</span></div>
+        ${i.description ? `<div style="font-size:13px;color:#3D3C55;margin-top:6px;line-height:1.55;">${i.description}</div>` : ''}
+        ${i.impact ? `<div style="font-size:12px;color:#6B6A80;font-style:italic;margin-top:5px;">Impact: ${i.impact}</div>` : ''}
+      </div>`).join('')
+    + `<div style="margin-top:12px;padding:12px 14px;background:#F4F3FF;border-radius:8px;font-size:12px;color:#6B6A80;">🔒 All 5 issues with full analysis in the <a href="https://audit.creativebridge.co.za" style="color:#2F27CE;font-weight:700;">Pro report</a></div>`
+    : '<p style="font-size:13px;color:#6B6A80;">No issues data available.</p>'}
   </div>`;
 
+  // Quick wins — new: topQuickWins[], compat: topQuickWin{}
+  const freeWinsList = Array.isArray(r.topQuickWins) ? r.topQuickWins
+    : (r.topQuickWin ? [r.topQuickWin] : []);
   const freeWinsHtml = `<div class="card">
     <div class="card-title">Quick Wins</div>
-    ${r.topQuickWin ? `
+    ${freeWinsList.length ? freeWinsList.slice(0,2).map((w) => `
       <div class="win-item">
         <span class="win-icon">✓</span>
-        <span class="win-text">${r.topQuickWin.recommendation||''} <span style="color:#9998B0;font-size:11px;">· Effort: ${r.topQuickWin.effort||''} · Impact: ${r.topQuickWin.impact||''}</span></span>
-      </div>
-      <div style="margin-top:12px;padding:12px;background:#F4F3FF;border-radius:8px;font-size:12px;color:#6B6A80;">+ 4 more quick wins in the Pro report</div>
-    ` : '<p style="font-size:13px;color:#6B6A80;">No quick wins data available.</p>'}
+        <span class="win-text">${w.recommendation||''}<span style="color:#9998B0;font-size:11px;"> · Effort: ${w.effort||''} · Impact: ${w.impact||''}</span></span>
+      </div>`).join('')
+    + (r.recommendation ? `<div style="margin-top:16px;background:#EEF2FF;border-left:4px solid #2F27CE;border-radius:4px;padding:12px 14px;font-size:13px;color:#3D3C55;line-height:1.6;"><strong style="color:#2F27CE;display:block;margin-bottom:4px;font-size:11px;letter-spacing:1px;text-transform:uppercase;">Recommendation</strong>${r.recommendation}</div>` : '')
+    + `<div style="margin-top:12px;padding:12px 14px;background:#F4F3FF;border-radius:8px;font-size:12px;color:#6B6A80;">🔒 5 quick wins + phased roadmap in the <a href="https://audit.creativebridge.co.za" style="color:#2F27CE;font-weight:700;">Pro report</a></div>`
+    : '<p style="font-size:13px;color:#6B6A80;">No quick wins data available.</p>'}
   </div>`;
 
   const upgradeCta = !isPro ? `<div class="upgrade-cta">
