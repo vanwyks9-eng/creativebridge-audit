@@ -369,7 +369,11 @@ button{cursor:pointer;font-family:var(--font-body);}
           <li><span class="p-check">✓</span> Premium PDF report</li>
           <li><span class="p-check">✓</span> Follow-up email support</li>
         </ul>
-        <button class="p-btn white" onclick="openModal('pro')">Start Pro Audit — R499</button>
+        <button class="p-btn white" onclick="openModal('pro')" style="margin-bottom:var(--space-3);">Start Pro Audit — R499</button>
+        <a href="pro-audit.html" class="p-btn outline" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;padding:11px;">
+          <span style="font-family:'Material Symbols Outlined';font-size:16px;font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;line-height:1;">info</span>
+          Learn More
+        </a>
       </div>
       <div class="pricing-card">
         <div class="p-tier">Monthly Monitoring</div>
@@ -583,6 +587,10 @@ const MAIN_GOALS = [
 if (sessionStorage.getItem('openFreeAudit') === '1') {
   sessionStorage.removeItem('openFreeAudit');
   window.addEventListener('DOMContentLoaded', () => openModal('free'));
+}
+if (sessionStorage.getItem('openProAudit') === '1') {
+  sessionStorage.removeItem('openProAudit');
+  window.addEventListener('DOMContentLoaded', () => openModal('pro'));
 }
 
 // ── STATE ──────────────────────────────────────────────────
