@@ -124,9 +124,8 @@ button{cursor:pointer;font-family:var(--font-body);}
 .bottom-cta{background:var(--color-primary-900);padding:var(--space-12) var(--space-8);text-align:center;border-top:1px solid rgba(47,39,206,0.3);}
 .bottom-cta h2{font-size:clamp(24px,3vw,40px);color:#fff;letter-spacing:-0.8px;margin-bottom:var(--space-3);}
 .bottom-cta p{font-size:15px;color:var(--color-neutral-400);max-width:400px;margin:0 auto var(--space-8);line-height:1.7;}
-.cta-btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);width:100%;max-width:520px;padding:18px var(--space-8);background:var(--color-neutral-900);color:#fff;border:none;border-radius:var(--radius-lg);font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:-0.3px;transition:all .2s;text-decoration:none;}
-.cta-btn:hover{background:#000;transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,0.4);}
-.cta-btn .cb-icon{font-size:22px;}
+.cta-btn{display:inline-flex;align-items:center;justify-content:center;padding:14px 28px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-lg);font-family:var(--font-display);font-weight:700;font-size:16px;transition:all .2s;text-decoration:none;}
+.cta-btn:hover{background:var(--color-accent-600);transform:translateY(-2px);box-shadow:0 6px 20px rgba(252,47,0,.35);}
 .cta-note{margin-top:var(--space-3);font-size:12px;color:var(--color-neutral-400);}
 
 /* ── FOOTER ──────────────────────────────────────────────── */
@@ -287,7 +286,6 @@ button{cursor:pointer;font-family:var(--font-body);}
     <h2>Ready to see your score?</h2>
     <p>No credit card. No signup. Your report lands in your inbox in under two minutes.</p>
     <a href="index.html#pricing" class="cta-btn" onclick="if(window.opener||window.parent!==window){return;}window.location='index.html';setTimeout(()=>{const el=document.getElementById('pricing');if(el)el.scrollIntoView({behavior:'smooth'});},200);">
-      <span class="cb-icon">search</span>
       Get Your Free Audit
     </a>
     <p class="cta-note">R0 · no card required · delivered by email</p>
